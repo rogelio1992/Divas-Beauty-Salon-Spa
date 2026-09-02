@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Luna | Agenda del salón",
+  title: "Divas Beauty Salon SPA | Agenda del salón",
   description: "Agenda y organización del salón de belleza"
 };
 
