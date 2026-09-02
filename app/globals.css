@@ -507,7 +507,7 @@ nav a.active {
 
 .content {
     width: calc(100% - 248px);
-    margin-left: 0;
+    margin-left: 248px;
     padding: 47px 6.5%;
     max-width: 1500px
 }
@@ -836,7 +836,6 @@ h1 span {
 
     .content {
         width: calc(100% - 66px);
-        margin-left: 66px;
         padding: 75px 20px
     }
 
