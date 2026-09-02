@@ -9,13 +9,16 @@ Este documento es la guía de evolución del sistema. Cada mejora terminada se m
 - [x] Servicios alineados con Divas Beauty Spa.
 - [x] Acceso a reservas por WhatsApp.
 - [x] Despliegue de prueba en Vercel.
+- [x] Secciones disponibles: Agenda, Clientes, Servicios y Equipo.
+- [x] Navegación diaria de la agenda y eliminación de citas de demostración.
 
 ## Fase 1 — Agenda operativa
 
 Objetivo: usar la agenda diariamente sin perder la información.
 
 - [ ] Conectar Supabase para guardar los datos.
-- [ ] Crear, editar y eliminar citas.
+- [x] Crear y eliminar citas de demostración.
+- [ ] Editar citas.
 - [ ] Mostrar calendario semanal y navegar por fechas.
 - [ ] Estados: confirmada, completada, cancelada y no asistió.
 - [ ] Evitar cruces de horario para cada profesional.
