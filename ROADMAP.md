@@ -13,6 +13,8 @@ Este documento es la guía de evolución del sistema. Cada mejora terminada se m
 - [x] Navegación diaria de la agenda y eliminación de citas de demostración.
 - [x] Citas persistentes en Supabase.
 - [x] Inicio de sesión básico para acceder a la agenda.
+- [x] Reserva pública sin cuenta para clientas.
+- [x] Horarios disponibles y prevención de cruces en reservas públicas.
 
 ## Fase 1 — Agenda operativa
 
@@ -40,8 +42,8 @@ Objetivo: organizar el trabajo real del salón.
 
 Objetivo: facilitar que las clientas reserven y confirmen su hora.
 
-- [ ] Página pública de reservas.
-- [ ] Mostrar solo horas disponibles.
+- [x] Página pública de reservas.
+- [x] Mostrar solo horas disponibles.
 - [ ] Confirmación de cita por WhatsApp.
 - [ ] Recordatorios automáticos antes de la cita.
 

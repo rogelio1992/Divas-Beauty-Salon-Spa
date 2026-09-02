@@ -18,6 +18,9 @@ grant usage on schema public to authenticated;
 grant select on public.profiles, public.services to authenticated;
 grant select, insert, update, delete on public.appointments to authenticated;
 grant usage, select on sequence public.appointments_id_seq to authenticated;
+grant usage on schema public to service_role;
+grant select on public.services to service_role;
+grant select, insert, update, delete on public.appointments to service_role;
 
 insert into public.services (name, category, duration_minutes, price) values
   ('Esmaltado permanente', 'Uñas', 75, 18000),
