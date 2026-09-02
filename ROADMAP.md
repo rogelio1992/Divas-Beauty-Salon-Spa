@@ -11,15 +11,18 @@ Este documento es la guía de evolución del sistema. Cada mejora terminada se m
 - [x] Despliegue de prueba en Vercel.
 - [x] Secciones disponibles: Agenda, Clientes, Servicios y Equipo.
 - [x] Navegación diaria de la agenda y eliminación de citas de demostración.
+- [x] Citas persistentes en Supabase.
+- [x] Inicio de sesión básico para acceder a la agenda.
 
 ## Fase 1 — Agenda operativa
 
 Objetivo: usar la agenda diariamente sin perder la información.
 
-- [ ] Conectar Supabase para guardar los datos.
-- [x] Crear y eliminar citas de demostración.
+- [x] Conectar Supabase para guardar los datos.
+- [x] Crear y eliminar citas reales.
 - [ ] Editar citas.
-- [ ] Mostrar calendario semanal y navegar por fechas.
+- [x] Navegar por días en la agenda.
+- [ ] Mostrar calendario semanal.
 - [ ] Estados: confirmada, completada, cancelada y no asistió.
 - [ ] Evitar cruces de horario para cada profesional.
 
@@ -60,4 +63,4 @@ Objetivo: apoyar las decisiones del salón.
 
 ---
 
-**Próxima prioridad:** Fase 1 — conectar Supabase y persistir las citas.
+**Próxima prioridad:** Fase 1 — editar citas, definir sus estados y prevenir cruces de horario.
