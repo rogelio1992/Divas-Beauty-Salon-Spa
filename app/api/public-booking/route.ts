@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     if (appointmentError) throw appointmentError;
     const slots = Array.from({ length: (closing - opening) / 30 }, (_, index) => opening + index * 30).filter((slot) => slot + service.duration_minutes <= closing && !(appointments ?? []).some((appointment) => { const begins = toMinutes(new Date(appointment.starts_at).toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false })); const finishes = begins + appointment.duration_minutes; return slot < finishes && slot + service.duration_minutes > begins; })).map(toTime);
     return NextResponse.json({ services, professionals, slots });
-  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "No se pudo consultar disponibilidad" }, { status: 500 }); }
+  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : (error as { message?: string }).message ?? "No se pudo consultar disponibilidad" }, { status: 500 }); }
 }
 
 export async function POST(request: NextRequest) {
@@ -41,5 +41,5 @@ export async function POST(request: NextRequest) {
     const { error } = await supabase.from("appointments").insert({ client_name: body.clientName.trim(), client_phone: body.phone.trim(), service_id: service.id, professional_name: body.professional, starts_at: `${body.date}T${body.time}:00-03:00`, duration_minutes: service.duration_minutes, status: "pending" });
     if (error) throw error;
     return NextResponse.json({ ok: true });
-  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "No se pudo crear la reserva." }, { status: 500 }); }
+  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : (error as { message?: string }).message ?? "No se pudo crear la reserva." }, { status: 500 }); }
 }
