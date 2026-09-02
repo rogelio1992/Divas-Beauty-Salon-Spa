@@ -1,0 +1,5 @@
+-- Ejecutar en Supabase SQL Editor cuando se cree el proyecto.
+create table public.profiles (id uuid primary key references auth.users(id) on delete cascade, full_name text not null, role text not null check (role in ('admin', 'staff')), created_at timestamptz not null default now());
+create table public.services (id bigint generated always as identity primary key, name text not null, category text not null, duration_minutes integer not null check (duration_minutes > 0), price integer not null check (price >= 0), active boolean not null default true);
+create table public.appointments (id bigint generated always as identity primary key, client_name text not null, service_id bigint references public.services(id), stylist_id uuid references public.profiles(id), starts_at timestamptz not null, duration_minutes integer not null check (duration_minutes > 0), status text not null default 'pending' check (status in ('pending', 'confirmed', 'completed', 'cancelled', 'no_show')), notes text, created_at timestamptz not null default now());
+create index appointments_stylist_starts_at_idx on public.appointments (stylist_id, starts_at);
