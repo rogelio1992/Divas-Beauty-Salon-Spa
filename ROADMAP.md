@@ -15,6 +15,8 @@ Este documento es la guía de evolución del sistema. Cada mejora terminada se m
 - [x] Inicio de sesión básico para acceder a la agenda.
 - [x] Reserva pública sin cuenta para clientas.
 - [x] Horarios disponibles y prevención de cruces en reservas públicas.
+- [x] Estados operativos para citas y liberación automática al cancelar.
+- [x] Horarios disponibles y prevención de cruces en la agenda interna.
 
 ## Fase 1 — Agenda operativa
 
@@ -25,8 +27,8 @@ Objetivo: usar la agenda diariamente sin perder la información.
 - [ ] Editar citas.
 - [x] Navegar por días en la agenda.
 - [ ] Mostrar calendario semanal.
-- [ ] Estados: confirmada, completada, cancelada y no asistió.
-- [ ] Evitar cruces de horario para cada profesional.
+- [x] Estados: confirmada, completada, cancelada y no asistió.
+- [x] Evitar cruces de horario para cada profesional.
 
 ## Fase 2 — Equipo y servicios
 
@@ -65,4 +67,4 @@ Objetivo: apoyar las decisiones del salón.
 
 ---
 
-**Próxima prioridad:** Fase 1 — editar citas, definir sus estados y prevenir cruces de horario.
+**Próxima prioridad:** Fase 1 — editar citas y añadir calendario semanal.
