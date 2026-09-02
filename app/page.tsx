@@ -34,17 +34,19 @@ export default function Home() {
     if (!supabase || !user) return;
     const [serviceResult, appointmentResult] = await Promise.all([
       supabase.from("services").select("id,name,category,duration_minutes,price").eq("active", true).order("name"),
-      supabase.from("appointments").select("id,client_name,service_id,starts_at,duration_minutes,status,services(name)").order("starts_at")
+      supabase.from("appointments").select("id,client_name,service_id,starts_at,duration_minutes,status").order("starts_at")
     ]);
     if (serviceResult.error || appointmentResult.error) { setNotice("No se pudo cargar la agenda. Revisa la migración de Supabase."); return; }
-    setServices(serviceResult.data ?? []);
+    const loadedServices = serviceResult.data ?? [];
+    const servicesById = new Map(loadedServices.map((service) => [service.id, service]));
+    setServices(loadedServices);
     setAppointments((appointmentResult.data ?? []).map((item: any) => {
       const startsAt = new Date(item.starts_at);
-      return { id: item.id, date: startsAt.toLocaleDateString("en-CA", { timeZone: "America/Santiago" }), time: startsAt.toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false }), client: item.client_name, service: item.services?.name ?? "Servicio", stylist: "Equipo Divas", duration: item.duration_minutes, status: item.status, serviceId: item.service_id };
+      return { id: item.id, date: startsAt.toLocaleDateString("en-CA", { timeZone: "America/Santiago" }), time: startsAt.toLocaleTimeString("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", hour12: false }), client: item.client_name, service: servicesById.get(item.service_id)?.name ?? "Servicio", stylist: "Equipo Divas", duration: item.duration_minutes, status: item.status, serviceId: item.service_id };
     }));
   }
 
-  useEffect(() => { void loadData(); }, [user]);
+  useEffect(() => { void loadData(); }, [user?.id]);
   const items = useMemo(() => appointments.filter(item => item.date === date && (filter === "Todas" || item.stylist === filter)), [appointments, date, filter]);
   const clients = useMemo(() => Array.from(new Set(appointments.map(item => item.client))).map(name => ({ name, visits: appointments.filter(item => item.client === name).length })), [appointments]);
   const moveDate = (days: number) => { const next = new Date(`${date}T12:00:00`); next.setDate(next.getDate() + days); setDate(next.toISOString().slice(0, 10)); };
