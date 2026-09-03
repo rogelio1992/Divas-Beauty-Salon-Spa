@@ -8,6 +8,7 @@ import {santiagoDayEnd, santiagoDayStart, santiagoInstant} from "../lib/santiago
 type View = "agenda" | "clientes" | "servicios" | "equipo";
 type AgendaMode = "day" | "week";
 type Service = { id: number; name: string; category: string; duration_minutes: number; price: number };
+type Professional = { id: number; name: string; specialty: string; work_days: number[]; work_start_time: string; work_end_time: string; active: boolean };
 type Appointment = {
     id: number;
     date: string;
@@ -20,7 +21,6 @@ type Appointment = {
     serviceId: number;
     phone: string | null
 };
-const team = ["Sofía", "Valentina", "Daniela"];
 const formatMoney = (price: number) => new Intl.NumberFormat("es-CL", {
     style: "currency",
     currency: "CLP",
@@ -45,6 +45,7 @@ export default function Home() {
     const [date, setDate] = useState("2026-09-02");
     const [filter, setFilter] = useState("Todas");
     const [services, setServices] = useState<Service[]>([]);
+    const [professionals, setProfessionals] = useState<Professional[]>([]);
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [notice, setNotice] = useState("");
     const [formError, setFormError] = useState("");
@@ -70,17 +71,19 @@ export default function Home() {
     async function loadData() {
         const supabase = getSupabaseClient();
         if (!supabase || !user) return;
-        const [serviceResult, appointmentResult] = await Promise.all([
+        const [serviceResult, appointmentResult, professionalResult] = await Promise.all([
             supabase.from("services").select("id,name,category,duration_minutes,price").eq("active", true).order("name"),
-            supabase.from("appointments").select("id,client_name,client_phone,service_id,professional_name,starts_at,duration_minutes,status").order("starts_at")
+            supabase.from("appointments").select("id,client_name,client_phone,service_id,professional_name,starts_at,duration_minutes,status").order("starts_at"),
+            supabase.from("professionals").select("id,name,specialty,work_days,work_start_time,work_end_time,active").order("name")
         ]);
-        if (serviceResult.error || appointmentResult.error) {
+        if (serviceResult.error || appointmentResult.error || professionalResult.error) {
             setNotice("No se pudo cargar la agenda. Revisa la migración de Supabase.");
             return;
         }
         const loadedServices = serviceResult.data ?? [];
         const servicesById = new Map(loadedServices.map((service) => [service.id, service]));
         setServices(loadedServices);
+        setProfessionals(professionalResult.data ?? []);
         setAppointments((appointmentResult.data ?? []).map((item: any) => {
             const startsAt = new Date(item.starts_at);
             return {
@@ -108,6 +111,7 @@ export default function Home() {
     }, [user?.id]);
     const items = useMemo(() => appointments.filter(item => item.date === date && (filter === "Todas" || item.stylist === filter)), [appointments, date, filter]);
     const weekDates = useMemo(() => weekFor(date), [date]);
+    const team = professionals.filter(item => item.active).map(item => item.name);
     const weekItems = useMemo(() => appointments.filter(item => weekDates.includes(item.date) && (filter === "Todas" || item.stylist === filter)), [appointments, weekDates, filter]);
     const reminderDate = addDays(date, 1);
     const reminderAppointments = useMemo(() => appointments.filter(item => item.date === reminderDate && !["cancelled", "completed", "no_show"].includes(item.status)), [appointments, reminderDate]);
@@ -335,10 +339,10 @@ export default function Home() {
                     <button className="delete" onClick={() => removeAppointment(item.id)}>x</button>
                 </article>)}{!items.length && <p className="empty">No hay citas para este día.</p>}</div>}
             </section>
-        </> : <Directory view={view} services={services} clients={clients}/>}</section>
-        {open && <AppointmentForm date={date} services={services} error={formError} onClose={() => setOpen(false)}
+        </> : <Directory view={view} services={services} clients={clients} professionals={professionals} onRefresh={loadData}/>}</section>
+        {open && <AppointmentForm date={date} services={services} professionals={team} error={formError} onClose={() => setOpen(false)}
                                   onSubmit={createAppointment}/>} {editing &&
-        <AppointmentForm key={editing.id} date={editing.date} services={services} error={formError}
+        <AppointmentForm key={editing.id} date={editing.date} services={services} professionals={team} error={formError}
                          appointment={editing} onClose={() => setEditing(null)} onSubmit={updateAppointment}/>} {details &&
         <AppointmentDetails appointment={details} service={services.find(service => service.id === details.serviceId)} onClose={() => setDetails(null)} onEdit={() => { setDetails(null); setFormError(""); setEditing(details); }}/>} {remindersOpen &&
         <ReminderPanel date={reminderDate} appointments={reminderAppointments} onClose={() => setRemindersOpen(false)}/>}</main>;
@@ -423,12 +427,35 @@ function Auth() {
     </main>;
 }
 
-function Directory({view, services, clients}: {
+function Directory({view, services, clients, professionals, onRefresh}: {
     view: View;
     services: Service[];
-    clients: { name: string; visits: number }[]
+    clients: { name: string; visits: number }[];
+    professionals: Professional[];
+    onRefresh: () => Promise<void>
 }) {
     const title = view[0].toUpperCase() + view.slice(1);
+    async function editProfessional(professional?: Professional) {
+        const name = window.prompt("Nombre de la profesional", professional?.name ?? "");
+        if (!name?.trim()) return;
+        const specialty = window.prompt("Especialidad", professional?.specialty ?? "Servicios de belleza");
+        const days = window.prompt("Días de trabajo (0 domingo, 1 lunes... separados por coma)", professional?.work_days.join(",") ?? "1,2,3,4,5,6");
+        const start = window.prompt("Hora de inicio (HH:MM)", professional?.work_start_time.slice(0, 5) ?? "09:00");
+        const end = window.prompt("Hora de término (HH:MM)", professional?.work_end_time.slice(0, 5) ?? "18:00");
+        const workDays = days?.split(",").map(value => Number(value.trim())).filter(value => Number.isInteger(value) && value >= 0 && value <= 6) ?? [];
+        if (!specialty?.trim() || !workDays.length || !/^\d{2}:\d{2}$/.test(start ?? "") || !/^\d{2}:\d{2}$/.test(end ?? "")) return;
+        const supabase = getSupabaseClient();
+        if (!supabase) return;
+        const values = {name: name.trim(), specialty: specialty.trim(), work_days: workDays, work_start_time: start, work_end_time: end, active: professional?.active ?? true};
+        const {error} = professional ? await supabase.from("professionals").update(values).eq("id", professional.id) : await supabase.from("professionals").insert(values);
+        if (error) window.alert("No se pudo guardar la profesional."); else void onRefresh();
+    }
+    async function toggleProfessional(professional: Professional) {
+        const supabase = getSupabaseClient();
+        if (!supabase) return;
+        const {error} = await supabase.from("professionals").update({active: !professional.active}).eq("id", professional.id);
+        if (error) window.alert("No se pudo actualizar la profesional."); else void onRefresh();
+    }
     return <>
         <header>
             <div><p className="eyebrow">DIVAS BEAUTY SPA</p><h1>{title} <span>✦</span></h1><p
@@ -443,17 +470,18 @@ function Directory({view, services, clients}: {
                 <p className="empty">Aún no hay clientas registradas.</p>}</div>}{view === "servicios" &&
             <div className="service-grid">{services.map(service => <article className="service-card" key={service.id}>
                 <span>{service.category}</span><h3>{service.name}</h3><p>{service.duration_minutes} min</p>
-                <strong>{formatMoney(service.price)}</strong></article>)}</div>}{view === "equipo" &&
-            <div className="team-grid">{team.map((name, index) => <article className="team-card" key={name}>
-                <div className="team-avatar">{name[0]}</div>
-                <h3>{name}</h3><p>{["Manicure y pedicure", "Manicure y pestañas", "Depilación y pestañas"][index]}</p>
-                <span>{["09:00 – 18:00", "10:00 – 19:00", "09:30 – 18:30"][index]}</span></article>)}</div>}</section>
+                <strong>{formatMoney(service.price)}</strong></article>)}</div>}{view === "equipo" && <><div className="team-actions"><button className="primary" onClick={() => editProfessional()}>＋ Agregar profesional</button></div>
+            <div className="team-grid">{professionals.map(professional => <article className={`team-card${professional.active ? "" : " inactive"}`} key={professional.id}>
+                <div className="team-avatar">{professional.name[0]}</div><h3>{professional.name}</h3><p>{professional.specialty}</p>
+                <span>{professional.work_start_time.slice(0, 5)} – {professional.work_end_time.slice(0, 5)}</span><small>{professional.work_days.map(day => ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"][day]).join(" · ")}</small>
+                <button className="view-appointment" onClick={() => editProfessional(professional)}>Configurar</button><button className="view-appointment" onClick={() => toggleProfessional(professional)}>{professional.active ? "Desactivar" : "Activar"}</button></article>)}{!professionals.length && <p className="empty">Aún no hay profesionales configuradas.</p>}</div></>}</section>
     </>;
 }
 
-function AppointmentForm({date, services, error, appointment, onClose, onSubmit}: {
+function AppointmentForm({date, services, professionals, error, appointment, onClose, onSubmit}: {
     date: string;
     services: Service[];
+    professionals: string[];
     error: string;
     appointment?: Appointment;
     onClose: () => void;
@@ -495,7 +523,7 @@ function AppointmentForm({date, services, error, appointment, onClose, onSubmit}
                 required name="professional" value={professional}
                 onChange={event => { setProfessional(event.target.value); setSelectedTime(""); }}>
                 <option disabled value="">Selecciona</option>
-                {team.map(name => <option key={name}>{name}</option>)}</select></label></div>
+                {professionals.map(name => <option key={name}>{name}</option>)}</select></label></div>
             <label>Hora disponible<select required name="time" disabled={!slots.length} value={selectedTime}
                                           onChange={event => setSelectedTime(event.target.value)}>
                 <option value="">{loading ? "Buscando horarios…" : "Selecciona una hora"}</option>

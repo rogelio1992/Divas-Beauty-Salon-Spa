@@ -189,6 +189,23 @@
     border-radius: 999px
 }
 
+.team-card small {
+    display: block;
+    margin-top: 10px;
+    color: #897d86;
+    font-size: 11px
+}
+
+.team-card.inactive {
+    opacity: .55
+}
+
+.team-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px 12px 0
+}
+
 .delete {
     border: 0;
     background: transparent;

@@ -37,7 +37,8 @@ Objetivo: organizar el trabajo real del salón.
 
 - [ ] Inicio de sesión para administradora y trabajadoras.
 - [ ] Permisos: cada trabajadora ve sus citas; administración ve todo.
-- [ ] Configurar horarios y días de trabajo por profesional.
+- [x] Configurar horarios y días de trabajo por profesional.
+- [x] Administrar equipo de profesionales.
 - [ ] Administrar catálogo de servicios, precios y duración.
 - [ ] Ficha e historial de cada clienta.
 
