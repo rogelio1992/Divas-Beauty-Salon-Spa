@@ -3,6 +3,7 @@
 import {FormEvent, useEffect, useMemo, useState} from "react";
 import type {User} from "@supabase/supabase-js";
 import {getSupabaseClient} from "../lib/supabase";
+import {santiagoDayEnd, santiagoDayStart, santiagoInstant} from "../lib/santiago-time";
 
 type View = "agenda" | "clientes" | "servicios" | "equipo";
 type AgendaMode = "day" | "week";
@@ -50,6 +51,7 @@ export default function Home() {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Appointment | null>(null);
     const [details, setDetails] = useState<Appointment | null>(null);
+    const [remindersOpen, setRemindersOpen] = useState(false);
 
     useEffect(() => {
         const supabase = getSupabaseClient();
@@ -107,6 +109,8 @@ export default function Home() {
     const items = useMemo(() => appointments.filter(item => item.date === date && (filter === "Todas" || item.stylist === filter)), [appointments, date, filter]);
     const weekDates = useMemo(() => weekFor(date), [date]);
     const weekItems = useMemo(() => appointments.filter(item => weekDates.includes(item.date) && (filter === "Todas" || item.stylist === filter)), [appointments, weekDates, filter]);
+    const reminderDate = addDays(date, 1);
+    const reminderAppointments = useMemo(() => appointments.filter(item => item.date === reminderDate && !["cancelled", "completed", "no_show"].includes(item.status)), [appointments, reminderDate]);
     const clients = useMemo(() => Array.from(new Set(appointments.map(item => item.client))).map(name => ({
         name,
         visits: appointments.filter(item => item.client === name).length
@@ -121,12 +125,13 @@ export default function Home() {
         const service = services.find(item => item.id === Number(form.get("service")));
         const supabase = getSupabaseClient();
         if (!supabase || !service) return;
-        const startsAt = `${form.get("date")}T${form.get("time")}:00-03:00`;
+        const appointmentDate = String(form.get("date"));
+        const startsAt = santiagoInstant(appointmentDate, String(form.get("time")));
         const professional = String(form.get("professional"));
         const {
             data: existing,
             error: availabilityError
-        } = await supabase.from("appointments").select("starts_at,duration_minutes,status").eq("professional_name", professional).gte("starts_at", `${form.get("date")}T00:00:00-03:00`).lte("starts_at", `${form.get("date")}T23:59:59-03:00`).neq("status", "cancelled");
+        } = await supabase.from("appointments").select("starts_at,duration_minutes,status").eq("professional_name", professional).gte("starts_at", santiagoDayStart(appointmentDate)).lte("starts_at", santiagoDayEnd(appointmentDate)).neq("status", "cancelled");
         const requested = String(form.get("time")).split(":").map(Number).reduce((total, value, index) => total + value * (index === 0 ? 60 : 1), 0);
         const conflict = (existing ?? []).some((item) => {
             const time = new Date(item.starts_at).toLocaleTimeString("es-CL", {
@@ -157,7 +162,7 @@ export default function Home() {
         }
         setFormError("");
         setOpen(false);
-        setDate(String(form.get("date")));
+        setDate(appointmentDate);
         setNotice("Cita guardada correctamente.");
         void loadData();
     }
@@ -188,7 +193,7 @@ export default function Home() {
         const {
             data: existing,
             error: availabilityError
-        } = await supabase.from("appointments").select("starts_at,duration_minutes,status").eq("professional_name", professional).gte("starts_at", `${appointmentDate}T00:00:00-03:00`).lte("starts_at", `${appointmentDate}T23:59:59-03:00`).neq("status", "cancelled").neq("id", editing.id);
+        } = await supabase.from("appointments").select("starts_at,duration_minutes,status").eq("professional_name", professional).gte("starts_at", santiagoDayStart(appointmentDate)).lte("starts_at", santiagoDayEnd(appointmentDate)).neq("status", "cancelled").neq("id", editing.id);
         const requested = appointmentTime.split(":").map(Number).reduce((total, value, index) => total + value * (index === 0 ? 60 : 1), 0);
         const conflict = status !== "cancelled" && (existing ?? []).some((item) => {
             const time = new Date(item.starts_at).toLocaleTimeString("es-CL", {
@@ -209,7 +214,7 @@ export default function Home() {
             client_phone: String(form.get("phone")).trim() || null,
             service_id: service.id,
             professional_name: professional,
-            starts_at: `${appointmentDate}T${appointmentTime}:00-03:00`,
+            starts_at: santiagoInstant(appointmentDate, appointmentTime),
             duration_minutes: service.duration_minutes,
             status
         }).eq("id", editing.id);
@@ -269,6 +274,7 @@ export default function Home() {
                 <div><p className="eyebrow">SANTIAGO, CHILE</p><h1>Agenda de Divas <span>✦</span></h1><p
                     className="subtle">Agenda sincronizada en tiempo real.</p></div>
                 <div className="header-actions">
+                    <button className="reminders-button" onClick={() => setRemindersOpen(true)}>◷ Recordatorios</button>
                     <button className="primary" onClick={() => {
                         setFormError("");
                         setEditing(null);
@@ -334,7 +340,8 @@ export default function Home() {
                                   onSubmit={createAppointment}/>} {editing &&
         <AppointmentForm key={editing.id} date={editing.date} services={services} error={formError}
                          appointment={editing} onClose={() => setEditing(null)} onSubmit={updateAppointment}/>} {details &&
-        <AppointmentDetails appointment={details} service={services.find(service => service.id === details.serviceId)} onClose={() => setDetails(null)} onEdit={() => { setDetails(null); setFormError(""); setEditing(details); }}/>}</main>;
+        <AppointmentDetails appointment={details} service={services.find(service => service.id === details.serviceId)} onClose={() => setDetails(null)} onEdit={() => { setDetails(null); setFormError(""); setEditing(details); }}/>} {remindersOpen &&
+        <ReminderPanel date={reminderDate} appointments={reminderAppointments} onClose={() => setRemindersOpen(false)}/>}</main>;
 }
 
 function WeeklyAgenda({dates, appointments, selectedDate, onSelectDay}: { dates: string[]; appointments: Appointment[]; selectedDate: string; onSelectDay: (date: string) => void }) {
@@ -362,6 +369,19 @@ function AppointmentDetails({appointment, service, onClose, onEdit}: { appointme
         <dl className="appointment-data"><div><dt>Servicio solicitado</dt><dd>{appointment.service}</dd></div><div><dt>Duración</dt><dd>{appointment.duration} minutos</dd></div><div><dt>Fecha</dt><dd>{displayDate}</dd></div><div><dt>Horario</dt><dd>{appointment.time} hrs</dd></div><div><dt>Profesional</dt><dd>{appointment.stylist}</dd></div><div><dt>Valor</dt><dd>{service ? formatMoney(service.price) : "No disponible"}</dd></div></dl>
         {whatsappUrl ? <a className="whatsapp-confirm" href={whatsappUrl} target="_blank" rel="noreferrer">◉ Enviar confirmación por WhatsApp</a> : <p className="missing-phone">Agrega un teléfono para enviar la confirmación por WhatsApp.</p>}
         <button className="primary full" onClick={onEdit}>✎ Editar cita</button>
+    </section></div>;
+}
+
+function ReminderPanel({date, appointments, onClose}: { date: string; appointments: Appointment[]; onClose: () => void }) {
+    const displayDate = new Intl.DateTimeFormat("es-CL", {weekday: "long", day: "numeric", month: "long"}).format(new Date(`${date}T12:00:00`));
+    return <div className="modal-backdrop"><section className="modal reminders-panel" role="dialog" aria-modal="true" aria-label="Recordatorios de citas">
+        <div className="modal-title"><div><p className="eyebrow">DIVAS BEAUTY SPA · AGENDA</p><h2>Recordatorios</h2><p className="subtle">Citas para {displayDate}</p></div><button type="button" aria-label="Cerrar recordatorios" onClick={onClose}>×</button></div>
+        <div className="reminder-list">{appointments.map(appointment => {
+            const rawPhone = appointment.phone?.replace(/\D/g, "");
+            const phone = rawPhone?.length === 9 && rawPhone.startsWith("9") ? `56${rawPhone}` : rawPhone;
+            const message = `Hola ${appointment.client}, te recordamos tu cita de mañana en Divas Beauty Spa.\n\nServicio: ${appointment.service}\nHora: ${appointment.time} hrs\nProfesional: ${appointment.stylist}\n\n¡Te esperamos! Si necesitas reagendar, responde a este mensaje. ✦`;
+            return <article className="reminder-row" key={appointment.id}><div><strong>{appointment.time} · {appointment.client}</strong><span>{appointment.service} · {appointment.stylist}</span></div>{phone ? <a href={`https://wa.me/${phone}?text=${encodeURIComponent(message)}`} target="_blank" rel="noreferrer">Enviar WhatsApp</a> : <span className="phone-needed">Sin WhatsApp</span>}</article>;
+        })}{!appointments.length && <p className="empty">No hay citas que requieran recordatorio para este día.</p>}</div>
     </section></div>;
 }
 

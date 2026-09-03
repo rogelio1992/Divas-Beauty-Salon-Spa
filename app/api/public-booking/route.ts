@@ -1,5 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {getSupabaseAdmin} from "../../../lib/supabase-admin";
+import {santiagoDayEnd, santiagoDayStart, santiagoInstant} from "../../../lib/santiago-time";
 
 const opening = 9 * 60;
 const closing = 18 * 60;
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
         if (!date || !serviceId || !professional) return NextResponse.json({services, professionals});
         const service = services?.find((item) => item.id === serviceId);
         if (!service || !professionals.includes(professional)) return NextResponse.json({error: "Datos de reserva inválidos"}, {status: 400});
-        const start = `${date}T00:00:00-03:00`, end = `${date}T23:59:59-03:00`;
+        const start = santiagoDayStart(date), end = santiagoDayEnd(date);
         const excludeAppointmentId = Number(request.nextUrl.searchParams.get("excludeAppointmentId"));
         let appointmentsQuery = supabase.from("appointments").select("starts_at,duration_minutes,status").eq("professional_name", professional).gte("starts_at", start).lte("starts_at", end).neq("status", "cancelled");
         if (Number.isInteger(excludeAppointmentId) && excludeAppointmentId > 0) appointmentsQuery = appointmentsQuery.neq("id", excludeAppointmentId);
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
             error: serviceError
         } = await supabase.from("services").select("id,duration_minutes").eq("id", body.serviceId).eq("active", true).single();
         if (serviceError || !service) return NextResponse.json({error: "Servicio no disponible."}, {status: 400});
-        const start = `${body.date}T00:00:00-03:00`, end = `${body.date}T23:59:59-03:00`;
+        const start = santiagoDayStart(body.date), end = santiagoDayEnd(body.date);
         const {
             data: existing,
             error: existingError
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
             client_phone: body.phone.trim(),
             service_id: service.id,
             professional_name: body.professional,
-            starts_at: `${body.date}T${body.time}:00-03:00`,
+            starts_at: santiagoInstant(body.date, body.time),
             duration_minutes: service.duration_minutes,
             status: "pending"
         });

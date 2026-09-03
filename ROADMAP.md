@@ -49,6 +49,7 @@ Objetivo: facilitar que las clientas reserven y confirmen su hora.
 - [x] Mostrar solo horas disponibles.
 - [x] Confirmación manual de cita por WhatsApp con mensaje prellenado.
 - [ ] Recordatorios automáticos antes de la cita.
+- [x] Bandeja de recordatorios manuales asistidos por WhatsApp.
 
 ## Fase 4 — Administración del negocio
 

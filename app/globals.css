@@ -6,6 +6,20 @@
     gap: 10px
 }
 
+.reminders-button {
+    border: 1px solid #ddbed0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #fff;
+    color: #7e345d;
+    font: 700 12px 'DM Sans';
+    cursor: pointer
+}
+
+.reminders-button:hover {
+    background: #f8e9f0
+}
+
 .whatsapp {
     border: 1px solid #d8c7d1;
     border-radius: 8px;
@@ -899,6 +913,69 @@ h1 span {
 
 .appointment-details {
     width: min(500px, 100%)
+}
+
+.reminders-panel {
+    width: min(580px, 100%)
+}
+
+.reminders-panel .subtle {
+    margin-top: 5px
+}
+
+.reminder-list {
+    display: grid;
+    margin-top: 18px;
+    border: 1px solid #f0e8ed;
+    border-radius: 9px;
+    overflow: hidden
+}
+
+.reminder-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px;
+    border-bottom: 1px solid #f0e8ed
+}
+
+.reminder-row:last-child {
+    border-bottom: 0
+}
+
+.reminder-row > div {
+    display: grid;
+    gap: 4px;
+    flex: 1
+}
+
+.reminder-row strong {
+    font-size: 13px
+}
+
+.reminder-row span {
+    color: #897d86;
+    font-size: 11px
+}
+
+.reminder-row a {
+    border-radius: 7px;
+    padding: 8px 10px;
+    background: #e8f7ee;
+    color: #247044;
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap
+}
+
+.reminder-row a:hover {
+    background: #d9f1e3
+}
+
+.reminder-row .phone-needed {
+    color: #9a691c;
+    white-space: nowrap
 }
 
 .details-client {
