@@ -5,6 +5,7 @@ import type {User} from "@supabase/supabase-js";
 import {getSupabaseClient} from "../lib/supabase";
 
 type View = "agenda" | "clientes" | "servicios" | "equipo";
+type AgendaMode = "day" | "week";
 type Service = { id: number; name: string; category: string; duration_minutes: number; price: number };
 type Appointment = {
     id: number;
@@ -23,11 +24,22 @@ const formatMoney = (price: number) => new Intl.NumberFormat("es-CL", {
     currency: "CLP",
     maximumFractionDigits: 0
 }).format(price);
+const addDays = (value: string, days: number) => {
+    const next = new Date(`${value}T12:00:00`);
+    next.setDate(next.getDate() + days);
+    return next.toISOString().slice(0, 10);
+};
+const weekFor = (value: string) => {
+    const current = new Date(`${value}T12:00:00`);
+    const mondayOffset = (current.getDay() + 6) % 7;
+    return Array.from({length: 7}, (_, index) => addDays(value, index - mondayOffset));
+};
 
 export default function Home() {
     const [user, setUser] = useState<User | null>(null);
     const [ready, setReady] = useState(false);
     const [view, setView] = useState<View>("agenda");
+    const [agendaMode, setAgendaMode] = useState<AgendaMode>("day");
     const [date, setDate] = useState("2026-09-02");
     const [filter, setFilter] = useState("Todas");
     const [services, setServices] = useState<Service[]>([]);
@@ -90,14 +102,14 @@ export default function Home() {
         void loadData();
     }, [user?.id]);
     const items = useMemo(() => appointments.filter(item => item.date === date && (filter === "Todas" || item.stylist === filter)), [appointments, date, filter]);
+    const weekDates = useMemo(() => weekFor(date), [date]);
+    const weekItems = useMemo(() => appointments.filter(item => weekDates.includes(item.date) && (filter === "Todas" || item.stylist === filter)), [appointments, weekDates, filter]);
     const clients = useMemo(() => Array.from(new Set(appointments.map(item => item.client))).map(name => ({
         name,
         visits: appointments.filter(item => item.client === name).length
     })), [appointments]);
     const moveDate = (days: number) => {
-        const next = new Date(`${date}T12:00:00`);
-        next.setDate(next.getDate() + days);
-        setDate(next.toISOString().slice(0, 10));
+        setDate(addDays(date, days));
     };
 
     async function createAppointment(event: FormEvent<HTMLFormElement>) {
@@ -266,26 +278,25 @@ export default function Home() {
                 <div className="agenda-top">
                     <div>
                         <div className="date-controls">
-                            <button onClick={() => moveDate(-1)}>‹</button>
-                            <h2>{new Intl.DateTimeFormat("es-CL", {
-                                weekday: "long",
-                                day: "numeric",
-                                month: "long"
-                            }).format(new Date(`${date}T12:00:00`))}</h2>
-                            <button onClick={() => moveDate(1)}>›</button>
+                            <button aria-label={agendaMode === "week" ? "Semana anterior" : "Día anterior"} onClick={() => moveDate(agendaMode === "week" ? -7 : -1)}>‹</button>
+                            <h2>{agendaMode === "week" ? `${new Intl.DateTimeFormat("es-CL", {day: "numeric", month: "short"}).format(new Date(`${weekDates[0]}T12:00:00`))} – ${new Intl.DateTimeFormat("es-CL", {day: "numeric", month: "short"}).format(new Date(`${weekDates[6]}T12:00:00`))}` : new Intl.DateTimeFormat("es-CL", {weekday: "long", day: "numeric", month: "long"}).format(new Date(`${date}T12:00:00`))}</h2>
+                            <button aria-label={agendaMode === "week" ? "Semana siguiente" : "Día siguiente"} onClick={() => moveDate(agendaMode === "week" ? 7 : 1)}>›</button>
                         </div>
-                        <p>{items.length} citas programadas</p></div>
-                    <div className="filters">
+                        <p>{agendaMode === "week" ? `${weekItems.length} citas programadas esta semana` : `${items.length} citas programadas`}</p></div>
+                    <div className="agenda-tools"><div className="view-toggle" aria-label="Vista de agenda">
+                        <button className={agendaMode === "day" ? "selected" : ""} onClick={() => setAgendaMode("day")}>Día</button>
+                        <button className={agendaMode === "week" ? "selected" : ""} onClick={() => setAgendaMode("week")}>Semana</button>
+                    </div><div className="filters">
                         <button className={filter === "Todas" ? "selected" : ""}
                                 onClick={() => setFilter("Todas")}>Todas
                         </button>
                         {team.map(name => <button key={name} className={filter === name ? "selected" : ""}
-                                                  onClick={() => setFilter(name)}>{name}</button>)}</div>
+                                                  onClick={() => setFilter(name)}>{name}</button>)}</div></div>
                 </div>
                 {notice && <div className="notice">✓ {notice}
                     <button onClick={() => setNotice("")}>×</button>
                 </div>}
-                <div className="appointments">{items.map(item => <article className="appointment" key={item.id}>
+                {agendaMode === "week" ? <WeeklyAgenda dates={weekDates} appointments={weekItems} selectedDate={date} onSelectDay={(selectedDate) => { setDate(selectedDate); setAgendaMode("day"); }}/> : <div className="appointments">{items.map(item => <article className="appointment" key={item.id}>
                     <time>{item.time}</time>
                     <div className="line"/>
                     <div className="details">
@@ -305,13 +316,25 @@ export default function Home() {
                     }}>✎ <span>Editar</span>
                     </button>
                     <button className="delete" onClick={() => removeAppointment(item.id)}>x</button>
-                </article>)}{!items.length && <p className="empty">No hay citas para este día.</p>}</div>
+                </article>)}{!items.length && <p className="empty">No hay citas para este día.</p>}</div>}
             </section>
         </> : <Directory view={view} services={services} clients={clients}/>}</section>
         {open && <AppointmentForm date={date} services={services} error={formError} onClose={() => setOpen(false)}
                                   onSubmit={createAppointment}/>} {editing &&
         <AppointmentForm key={editing.id} date={editing.date} services={services} error={formError}
                          appointment={editing} onClose={() => setEditing(null)} onSubmit={updateAppointment}/>}</main>;
+}
+
+function WeeklyAgenda({dates, appointments, selectedDate, onSelectDay}: { dates: string[]; appointments: Appointment[]; selectedDate: string; onSelectDay: (date: string) => void }) {
+    const dayLabel = new Intl.DateTimeFormat("es-CL", {weekday: "short"});
+    return <div className="week-grid">{dates.map(day => {
+        const dayAppointments = appointments.filter(appointment => appointment.date === day);
+        const current = day === selectedDate;
+        return <button className={`week-day${current ? " current" : ""}`} key={day} onClick={() => onSelectDay(day)}>
+            <span className="week-date"><small>{dayLabel.format(new Date(`${day}T12:00:00`)).replace(".", "")}</small><strong>{new Date(`${day}T12:00:00`).getDate()}</strong></span>
+            <span className="week-appointments">{dayAppointments.map(appointment => <span className={`week-appointment ${appointment.status}`} key={appointment.id}><b>{appointment.time}</b>{appointment.client}<small>{appointment.service}</small></span>)}{!dayAppointments.length && <span className="week-empty">Sin citas</span>}</span>
+        </button>;
+    })}</div>;
 }
 
 function Auth() {

@@ -619,6 +619,35 @@ h1 span {
     gap: 6px
 }
 
+.agenda-tools {
+    display: flex;
+    align-items: center;
+    gap: 16px
+}
+
+.view-toggle {
+    display: flex;
+    padding: 3px;
+    border-radius: 8px;
+    background: #f5eef2
+}
+
+.view-toggle button {
+    border: 0;
+    border-radius: 6px;
+    padding: 7px 10px;
+    background: transparent;
+    color: #796b75;
+    font: 600 12px 'DM Sans';
+    cursor: pointer
+}
+
+.view-toggle button.selected {
+    background: #fff;
+    color: #5f254b;
+    box-shadow: 0 1px 4px #5f254b18
+}
+
 .filters button {
     border: 0;
     background: transparent;
@@ -633,6 +662,105 @@ h1 span {
     background: #f8e9f0;
     color: #7e345d;
     font-weight: 700
+}
+
+.week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(125px, 1fr));
+    min-height: 390px;
+    overflow-x: auto
+}
+
+.week-day {
+    min-width: 125px;
+    border: 0;
+    border-right: 1px solid #f3edf0;
+    background: #fff;
+    color: #342d36;
+    padding: 15px 12px;
+    text-align: left;
+    vertical-align: top;
+    cursor: pointer
+}
+
+.week-day:last-child {
+    border-right: 0
+}
+
+.week-day:hover, .week-day.current {
+    background: #fdf8fa
+}
+
+.week-day:focus-visible {
+    outline: 3px solid #eecbdb;
+    outline-offset: -3px
+}
+
+.week-date {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid #f3edf0
+}
+
+.week-date small {
+    color: #897d86;
+    font-size: 11px;
+    text-transform: capitalize
+}
+
+.week-date strong {
+    font: 600 20px 'Playfair Display', serif
+}
+
+.week-day.current .week-date strong {
+    color: #a54d77
+}
+
+.week-appointments {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px
+}
+
+.week-appointment {
+    display: grid;
+    gap: 3px;
+    padding: 9px;
+    border-left: 3px solid #d998b5;
+    border-radius: 0 6px 6px 0;
+    background: #fbeef3;
+    color: #6b3853;
+    font-size: 11px
+}
+
+.week-appointment b {
+    font-size: 10px
+}
+
+.week-appointment small {
+    color: #9a7184;
+    font-size: 10px
+}
+
+.week-appointment.confirmed {
+    border-color: #7fb796;
+    background: #edf8f1;
+    color: #377653
+}
+
+.week-appointment.cancelled, .week-appointment.no_show {
+    border-color: #cbbcc4;
+    background: #f5f1f3;
+    color: #897d86;
+    text-decoration: line-through
+}
+
+.week-empty {
+    color: #b0a3ab;
+    font-size: 11px;
+    padding: 8px 0
 }
 
 .appointment {
@@ -890,6 +1018,17 @@ h1 span {
 
     .filters {
         flex-wrap: wrap
+    }
+
+    .agenda-tools {
+        width: 100%;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 10px
+    }
+
+    .week-grid {
+        min-height: 310px
     }
 
     .status {

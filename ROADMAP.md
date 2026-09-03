@@ -26,7 +26,7 @@ Objetivo: usar la agenda diariamente sin perder la información.
 - [x] Crear y eliminar citas reales.
 - [x] Editar citas.
 - [x] Navegar por días en la agenda.
-- [ ] Mostrar calendario semanal.
+- [x] Mostrar calendario semanal.
 - [x] Estados: confirmada, completada, cancelada y no asistió.
 - [x] Evitar cruces de horario para cada profesional.
 
@@ -67,4 +67,4 @@ Objetivo: apoyar las decisiones del salón.
 
 ---
 
-**Próxima prioridad:** Fase 1 — añadir calendario semanal.
+**Próxima prioridad:** Fase 2 — inicio de sesión con roles y permisos.
