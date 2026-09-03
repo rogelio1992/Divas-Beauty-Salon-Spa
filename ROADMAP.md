@@ -25,6 +25,7 @@ Objetivo: usar la agenda diariamente sin perder la información.
 - [x] Conectar Supabase para guardar los datos.
 - [x] Crear y eliminar citas reales.
 - [x] Editar citas.
+- [x] Ver detalle completo de una cita.
 - [x] Navegar por días en la agenda.
 - [x] Mostrar calendario semanal.
 - [x] Estados: confirmada, completada, cancelada y no asistió.
@@ -46,7 +47,7 @@ Objetivo: facilitar que las clientas reserven y confirmen su hora.
 
 - [x] Página pública de reservas.
 - [x] Mostrar solo horas disponibles.
-- [ ] Confirmación de cita por WhatsApp.
+- [x] Confirmación manual de cita por WhatsApp con mensaje prellenado.
 - [ ] Recordatorios automáticos antes de la cita.
 
 ## Fase 4 — Administración del negocio

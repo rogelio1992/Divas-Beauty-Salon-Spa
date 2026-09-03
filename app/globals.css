@@ -374,6 +374,20 @@
     transition: background .15s ease, border-color .15s ease, transform .15s ease
 }
 
+.view-appointment {
+    border: 0;
+    background: transparent;
+    color: #7e345d;
+    padding: 8px 2px;
+    font: 600 12px 'DM Sans';
+    cursor: pointer
+}
+
+.view-appointment:hover {
+    color: #a54d77;
+    text-decoration: underline
+}
+
 .edit:hover {
     background: #f8e9f0;
     border-color: #bf7498;
@@ -881,6 +895,127 @@ h1 span {
 
 .modal-title h2 {
     font-size: 25px
+}
+
+.appointment-details {
+    width: min(500px, 100%)
+}
+
+.details-client {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 14px;
+    border: 1px solid #f0e2e9;
+    border-radius: 9px;
+    background: #fdf9fb
+}
+
+.details-client > div:nth-child(2) {
+    display: grid;
+    gap: 3px;
+    flex: 1
+}
+
+.details-client strong {
+    font-size: 14px
+}
+
+.details-client span {
+    color: #897d86;
+    font-size: 12px
+}
+
+.details-status {
+    border-radius: 999px;
+    padding: 6px 9px;
+    font-size: 11px
+}
+
+.details-status.confirmed {
+    background: #e5f5ec;
+    color: #377653
+}
+
+.details-status.pending {
+    background: #fff1d9;
+    color: #a86d1e
+}
+
+.details-status.completed {
+    background: #eee9f8;
+    color: #625190
+}
+
+.details-status.cancelled, .details-status.no_show {
+    background: #f1ecef;
+    color: #746a71
+}
+
+.appointment-data {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    margin: 18px 0 0;
+    border: 1px solid #f0e8ed;
+    border-radius: 9px;
+    overflow: hidden
+}
+
+.appointment-data div {
+    padding: 13px;
+    border-bottom: 1px solid #f0e8ed
+}
+
+.appointment-data div:nth-child(odd) {
+    border-right: 1px solid #f0e8ed
+}
+
+.appointment-data div:nth-last-child(-n+2) {
+    border-bottom: 0
+}
+
+.appointment-data dt {
+    color: #9b8993;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase
+}
+
+.appointment-data dd {
+    margin: 5px 0 0;
+    color: #493b46;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: capitalize
+}
+
+.whatsapp-confirm {
+    display: block;
+    width: 100%;
+    margin-top: 18px;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #e8f7ee;
+    color: #247044;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none
+}
+
+.whatsapp-confirm:hover {
+    background: #d9f1e3
+}
+
+.missing-phone {
+    margin: 18px 0 0;
+    padding: 10px 12px;
+    border-radius: 7px;
+    background: #fff5e5;
+    color: #9a691c;
+    font-size: 12px
 }
 
 .modal label {

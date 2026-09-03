@@ -16,7 +16,8 @@ type Appointment = {
     stylist: string;
     duration: number;
     status: string;
-    serviceId: number
+    serviceId: number;
+    phone: string | null
 };
 const team = ["Sofía", "Valentina", "Daniela"];
 const formatMoney = (price: number) => new Intl.NumberFormat("es-CL", {
@@ -48,6 +49,7 @@ export default function Home() {
     const [formError, setFormError] = useState("");
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Appointment | null>(null);
+    const [details, setDetails] = useState<Appointment | null>(null);
 
     useEffect(() => {
         const supabase = getSupabaseClient();
@@ -68,7 +70,7 @@ export default function Home() {
         if (!supabase || !user) return;
         const [serviceResult, appointmentResult] = await Promise.all([
             supabase.from("services").select("id,name,category,duration_minutes,price").eq("active", true).order("name"),
-            supabase.from("appointments").select("id,client_name,service_id,professional_name,starts_at,duration_minutes,status").order("starts_at")
+            supabase.from("appointments").select("id,client_name,client_phone,service_id,professional_name,starts_at,duration_minutes,status").order("starts_at")
         ]);
         if (serviceResult.error || appointmentResult.error) {
             setNotice("No se pudo cargar la agenda. Revisa la migración de Supabase.");
@@ -93,7 +95,8 @@ export default function Home() {
                 stylist: item.professional_name ?? "Equipo Divas",
                 duration: item.duration_minutes,
                 status: item.status,
-                serviceId: item.service_id
+                serviceId: item.service_id,
+                phone: item.client_phone
             };
         }));
     }
@@ -141,6 +144,7 @@ export default function Home() {
         }
         const {error} = await supabase.from("appointments").insert({
             client_name: form.get("client"),
+            client_phone: String(form.get("phone")).trim() || null,
             service_id: service.id,
             professional_name: professional,
             starts_at: startsAt,
@@ -202,6 +206,7 @@ export default function Home() {
         }
         const {error} = await supabase.from("appointments").update({
             client_name: String(form.get("client")).trim(),
+            client_phone: String(form.get("phone")).trim() || null,
             service_id: service.id,
             professional_name: professional,
             starts_at: `${appointmentDate}T${appointmentTime}:00-03:00`,
@@ -212,19 +217,24 @@ export default function Home() {
             setFormError("No se pudo actualizar la cita. Inténtalo nuevamente.");
             return;
         }
+        const updatedAppointment: Appointment = {id: editing.id, date: appointmentDate, time: appointmentTime, client: String(form.get("client")).trim(), phone: String(form.get("phone")).trim() || null, service: service.name, stylist: professional, duration: service.duration_minutes, status, serviceId: service.id};
         setFormError("");
         setEditing(null);
         setDate(appointmentDate);
         setNotice("Cita actualizada correctamente.");
+        if (status === "confirmed") setDetails(updatedAppointment);
         void loadData();
     }
 
-    async function updateStatus(id: number, status: string) {
+    async function updateStatus(appointment: Appointment, status: string) {
         const supabase = getSupabaseClient();
         if (!supabase) return;
-        const {error} = await supabase.from("appointments").update({status}).eq("id", id);
-        setNotice(error ? "No se pudo actualizar el estado." : "Estado de la cita actualizado.");
-        if (!error) void loadData();
+        const {error} = await supabase.from("appointments").update({status}).eq("id", appointment.id);
+        setNotice(error ? "No se pudo actualizar el estado." : status === "confirmed" ? "Cita confirmada. Envía el mensaje a la clienta." : "Estado de la cita actualizado.");
+        if (!error) {
+            if (status === "confirmed") setDetails({...appointment, status});
+            void loadData();
+        }
     }
 
     if (!ready) return <main className="auth-page"><p>Cargando Divas Beauty Spa…</p></main>;
@@ -302,7 +312,7 @@ export default function Home() {
                     <div className="details">
                         <strong>{item.client}</strong><span>{item.service} · {item.duration} min</span></div>
                     <span className="stylist">{item.stylist}</span><select className="status-select" value={item.status}
-                                                                           onChange={event => updateStatus(item.id, event.target.value)}>
+                                                                           onChange={event => updateStatus(item, event.target.value)}>
                     <option value="pending">Pendiente</option>
                     <option value="confirmed">Confirmada</option>
                     <option value="completed">Completada</option>
@@ -315,6 +325,7 @@ export default function Home() {
                         setEditing(item);
                     }}>✎ <span>Editar</span>
                     </button>
+                    <button className="view-appointment" type="button" onClick={() => setDetails(item)}>Ver</button>
                     <button className="delete" onClick={() => removeAppointment(item.id)}>x</button>
                 </article>)}{!items.length && <p className="empty">No hay citas para este día.</p>}</div>}
             </section>
@@ -322,7 +333,8 @@ export default function Home() {
         {open && <AppointmentForm date={date} services={services} error={formError} onClose={() => setOpen(false)}
                                   onSubmit={createAppointment}/>} {editing &&
         <AppointmentForm key={editing.id} date={editing.date} services={services} error={formError}
-                         appointment={editing} onClose={() => setEditing(null)} onSubmit={updateAppointment}/>}</main>;
+                         appointment={editing} onClose={() => setEditing(null)} onSubmit={updateAppointment}/>} {details &&
+        <AppointmentDetails appointment={details} service={services.find(service => service.id === details.serviceId)} onClose={() => setDetails(null)} onEdit={() => { setDetails(null); setFormError(""); setEditing(details); }}/>}</main>;
 }
 
 function WeeklyAgenda({dates, appointments, selectedDate, onSelectDay}: { dates: string[]; appointments: Appointment[]; selectedDate: string; onSelectDay: (date: string) => void }) {
@@ -335,6 +347,22 @@ function WeeklyAgenda({dates, appointments, selectedDate, onSelectDay}: { dates:
             <span className="week-appointments">{dayAppointments.map(appointment => <span className={`week-appointment ${appointment.status}`} key={appointment.id}><b>{appointment.time}</b>{appointment.client}<small>{appointment.service}</small></span>)}{!dayAppointments.length && <span className="week-empty">Sin citas</span>}</span>
         </button>;
     })}</div>;
+}
+
+function AppointmentDetails({appointment, service, onClose, onEdit}: { appointment: Appointment; service?: Service; onClose: () => void; onEdit: () => void }) {
+    const statusLabels: Record<string, string> = {pending: "Pendiente", confirmed: "Confirmada", completed: "Completada", cancelled: "Cancelada", no_show: "No asistió"};
+    const displayDate = new Intl.DateTimeFormat("es-CL", {weekday: "long", day: "numeric", month: "long", year: "numeric"}).format(new Date(`${appointment.date}T12:00:00`));
+    const rawPhone = appointment.phone?.replace(/\D/g, "");
+    const phone = rawPhone?.length === 9 && rawPhone.startsWith("9") ? `56${rawPhone}` : rawPhone;
+    const confirmation = `Hola ${appointment.client}, te escribimos desde Divas Beauty Spa para confirmar tu cita.\n\nServicio: ${appointment.service}\nFecha: ${displayDate}\nHora: ${appointment.time} hrs\nProfesional: ${appointment.stylist}\n\nPor favor responde a este mensaje para confirmar tu asistencia. ¡Te esperamos! ✦`;
+    const whatsappUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(confirmation)}` : null;
+    return <div className="modal-backdrop"><section className="modal appointment-details" role="dialog" aria-modal="true" aria-label={`Detalle de cita de ${appointment.client}`}>
+        <div className="modal-title"><div><p className="eyebrow">DIVAS BEAUTY SPA · CITA</p><h2>Detalle de la cita</h2></div><button type="button" aria-label="Cerrar detalle" onClick={onClose}>×</button></div>
+        <div className="details-client"><div className="initials">{appointment.client.split(" ").map(part => part[0]).join("").slice(0, 2)}</div><div><strong>{appointment.client}</strong><span>{appointment.phone ?? "Sin teléfono registrado"}</span></div><b className={`details-status ${appointment.status}`}>{statusLabels[appointment.status] ?? appointment.status}</b></div>
+        <dl className="appointment-data"><div><dt>Servicio solicitado</dt><dd>{appointment.service}</dd></div><div><dt>Duración</dt><dd>{appointment.duration} minutos</dd></div><div><dt>Fecha</dt><dd>{displayDate}</dd></div><div><dt>Horario</dt><dd>{appointment.time} hrs</dd></div><div><dt>Profesional</dt><dd>{appointment.stylist}</dd></div><div><dt>Valor</dt><dd>{service ? formatMoney(service.price) : "No disponible"}</dd></div></dl>
+        {whatsappUrl ? <a className="whatsapp-confirm" href={whatsappUrl} target="_blank" rel="noreferrer">◉ Enviar confirmación por WhatsApp</a> : <p className="missing-phone">Agrega un teléfono para enviar la confirmación por WhatsApp.</p>}
+        <button className="primary full" onClick={onEdit}>✎ Editar cita</button>
+    </section></div>;
 }
 
 function Auth() {
@@ -434,7 +462,8 @@ function AppointmentForm({date, services, error, appointment, onClose, onSubmit}
                 <button type="button" onClick={onClose}>×</button>
             </div>
             <label>Cliente<input required name="client" defaultValue={appointment?.client}
-                                 placeholder="Nombre de la clienta"/></label><label>Servicio<select required
+                                 placeholder="Nombre de la clienta"/></label><label>WhatsApp<input name="phone" type="tel" defaultValue={appointment?.phone ?? ""}
+                                 placeholder="+56 9 ..."/></label><label>Servicio<select required
                                                                                                     name="service"
                                                                                                     value={serviceId}
                                                                                                     onChange={event => { setServiceId(event.target.value); setSelectedTime(""); }}>
