@@ -24,7 +24,7 @@ Objetivo: usar la agenda diariamente sin perder la información.
 
 - [x] Conectar Supabase para guardar los datos.
 - [x] Crear y eliminar citas reales.
-- [ ] Editar citas.
+- [x] Editar citas.
 - [x] Navegar por días en la agenda.
 - [ ] Mostrar calendario semanal.
 - [x] Estados: confirmada, completada, cancelada y no asistió.
@@ -67,4 +67,4 @@ Objetivo: apoyar las decisiones del salón.
 
 ---
 
-**Próxima prioridad:** Fase 1 — editar citas y añadir calendario semanal.
+**Próxima prioridad:** Fase 1 — añadir calendario semanal.
