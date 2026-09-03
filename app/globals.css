@@ -360,6 +360,31 @@
     cursor: pointer
 }
 
+.edit {
+    border: 1px solid #ddbed0;
+    border-radius: 7px;
+    background: #fff;
+    color: #7e345d;
+    padding: 7px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font: 600 12px 'DM Sans';
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, transform .15s ease
+}
+
+.edit:hover {
+    background: #f8e9f0;
+    border-color: #bf7498;
+    transform: translateY(-1px)
+}
+
+.edit:focus-visible {
+    outline: 3px solid #eecbdb;
+    outline-offset: 2px
+}
+
 .form-error {
     margin: 16px 0 0;
     padding: 10px;

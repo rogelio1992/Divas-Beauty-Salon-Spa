@@ -298,11 +298,11 @@ export default function Home() {
                     <option value="cancelled">Cancelada</option>
                     <option value="no_show">No asistió</option>
                 </select>
-                    <button className="edit" onClick={() => {
+                    <button className="edit" type="button" aria-label={`Editar cita de ${item.client}`} title="Editar cita" onClick={() => {
                         setFormError("");
                         setOpen(false);
                         setEditing(item);
-                    }}>Editar
+                    }}>✎ <span>Editar</span>
                     </button>
                     <button className="delete" onClick={() => removeAppointment(item.id)}>x</button>
                 </article>)}{!items.length && <p className="empty">No hay citas para este día.</p>}</div>
