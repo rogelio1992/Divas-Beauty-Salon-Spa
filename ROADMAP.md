@@ -35,12 +35,21 @@ Objetivo: usar la agenda diariamente sin perder la información.
 
 Objetivo: organizar el trabajo real del salón.
 
-- [ ] Inicio de sesión para administradora y trabajadoras.
-- [ ] Permisos: cada trabajadora ve sus citas; administración ve todo.
+**Implementación terminada y validada localmente el 7 de septiembre de 2026. Pendiente de activación en Supabase y Vercel.** Las casillas de esta fase reflejan el código implementado; no un despliegue ya realizado.
+
+- [x] Inicio de sesión para administradora y trabajadoras.
+- [x] Permisos: cada trabajadora ve sus citas; administración ve todo.
 - [x] Configurar horarios y días de trabajo por profesional.
 - [x] Administrar equipo de profesionales.
-- [ ] Administrar catálogo de servicios, precios y duración.
-- [ ] Ficha e historial de cada clienta.
+- [x] Administrar catálogo de servicios, precios y duración.
+- [x] Ficha e historial de cada clienta.
+
+### Activación de fase 2
+
+- [ ] Aplicar `supabase/migrations/20260907_phase2.sql` al proyecto real. Requiere que `rogedaniel1992@gmail.com` exista con correo confirmado.
+- [ ] Publicar esta versión en Vercel.
+- [ ] Vincular y habilitar las cuentas reales del equipo.
+- [ ] Verificar los flujos de administración, trabajadora y reserva pública en el entorno real.
 
 ## Fase 3 — Reservas de clientas
 
@@ -70,4 +79,6 @@ Objetivo: apoyar las decisiones del salón.
 
 ---
 
-**Próxima prioridad:** Fase 2 — inicio de sesión con roles y permisos.
+**Próxima prioridad:** activar y verificar la fase 2 en Supabase/Vercel; después, recordatorios automáticos de fase 3.
+
+**Pendiente técnico de agenda:** garantizar en la base de datos que dos reservas simultáneas no puedan ocupar el mismo horario.

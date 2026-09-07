@@ -1265,3 +1265,27 @@ h1 span {
         font-size: 10px
     }
 }
+
+/* Phase 2 forms share the salon's existing visual language. */
+.modal { max-height: calc(100dvh - 40px); overflow-y: auto; }
+.phase-dialog { border: 0; color: #342d36; }
+.phase-dialog::backdrop { background: #2d202d88; }
+.modal textarea, .directory-search input { width: 100%; border: 1px solid #e6dce2; border-radius: 7px; padding: 10px; font: inherit; background: #fff; }
+.modal .check-label { display: flex; align-items: center; gap: 8px; }
+.modal .check-label input { width: auto; }
+.work-days { margin-top: 16px; border: 1px solid #e6dce2; border-radius: 7px; display: grid; grid-template-columns: 1fr 1fr; }
+.work-days legend { font-size: 12px; }
+.directory-search { display: grid; gap: 8px; padding: 12px; font-size: 13px; }
+.accounts { padding: 16px; border-top: 1px solid #f0e8ed; }
+.accounts .directory-row > div { display: grid; gap: 6px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.client-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
+.client-history article { padding: 14px 0; border-bottom: 1px solid #f0e8ed; font-size: 13px; }
+.client-history span { color: #897d86; }
+.session-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; font-size: 12px; color: #796b75; }
+button:disabled { opacity: .6; cursor: wait; }
+@media(max-width: 760px) {
+    .directory-row { flex-wrap: wrap; }
+    .modal-backdrop { z-index: 10; }
+    .sidebar { padding: 7px 10px; }
+    .directory-row strong { overflow-wrap: anywhere; }
+}

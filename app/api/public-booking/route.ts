@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         const {
             data: professionalRows,
             error: professionalError
-        } = await supabase.from("professionals").select("name,work_days,work_start_time,work_end_time").eq("active", true).order("name");
+        } = await supabase.from("professionals").select("id,name,work_days,work_start_time,work_end_time").eq("active", true).order("name");
         if (professionalError) throw professionalError;
         const professionals = professionalRows ?? [];
         const date = request.nextUrl.searchParams.get("date");
@@ -29,8 +29,29 @@ export async function GET(request: NextRequest) {
             services,
             professionals: professionals.map(item => item.name)
         });
-        const service = services?.find((item) => item.id === serviceId);
-        const professionalConfig = professionals.find(item => item.name === professional);
+        let service = services?.find((item) => item.id === serviceId);
+        let professionalConfig = professionals.find(item => item.name === professional);
+        const excludeAppointmentId = Number(request.nextUrl.searchParams.get("excludeAppointmentId"));
+        let original: {id: number; professional_id: number; service_id: number; duration_minutes: number} | null = null;
+        if (Number.isInteger(excludeAppointmentId) && excludeAppointmentId > 0) {
+            const token = request.headers.get("authorization")?.replace(/^Bearer /i, "");
+            if (!token) return NextResponse.json({error: "Inicia sesión para editar una cita."}, {status: 401});
+            const {data: auth, error: authError} = await supabase.auth.getUser(token);
+            if (authError || !auth.user) return NextResponse.json({error: "Sesión inválida."}, {status: 401});
+            const {data: profile} = await supabase.from("profiles").select("role,active,professional_id").eq("id", auth.user.id).maybeSingle();
+            const {data: appointment} = await supabase.from("appointments").select("id,professional_id,service_id,duration_minutes").eq("id", excludeAppointmentId).maybeSingle();
+            const {data: assigned} = profile?.professional_id ? await supabase.from("professionals").select("active").eq("id", profile.professional_id).maybeSingle() : {data: null};
+            if (!profile?.active || !appointment || (profile.role !== "admin" && (!assigned?.active || profile.professional_id !== appointment.professional_id))) return NextResponse.json({error: "No tienes acceso a esta cita."}, {status: 403});
+            original = appointment;
+            if (appointment.service_id === serviceId) {
+                const {data: historic} = await supabase.from("services").select("id,name,category,duration_minutes,price").eq("id", serviceId).maybeSingle();
+                if (historic) service = {...historic, duration_minutes: appointment.duration_minutes};
+            }
+            if (!professionalConfig) {
+                const {data: historic} = await supabase.from("professionals").select("id,name,work_days,work_start_time,work_end_time").eq("id", appointment.professional_id).eq("name", professional).maybeSingle();
+                professionalConfig = historic ?? undefined;
+            }
+        }
         if (!service || !professionalConfig) return NextResponse.json({error: "Datos de reserva inválidos"}, {status: 400});
         const dayOfWeek = new Date(`${date}T12:00:00`).getDay();
         if (!professionalConfig.work_days.includes(dayOfWeek)) return NextResponse.json({
@@ -39,9 +60,8 @@ export async function GET(request: NextRequest) {
             slots: []
         });
         const start = santiagoDayStart(date), end = santiagoDayEnd(date);
-        const excludeAppointmentId = Number(request.nextUrl.searchParams.get("excludeAppointmentId"));
-        let appointmentsQuery = supabase.from("appointments").select("starts_at,duration_minutes,status").eq("professional_name", professional).gte("starts_at", start).lte("starts_at", end).neq("status", "cancelled");
-        if (Number.isInteger(excludeAppointmentId) && excludeAppointmentId > 0) appointmentsQuery = appointmentsQuery.neq("id", excludeAppointmentId);
+        let appointmentsQuery = supabase.from("appointments").select("starts_at,duration_minutes,status").eq("professional_id", professionalConfig.id).gte("starts_at", start).lte("starts_at", end).neq("status", "cancelled");
+        if (original) appointmentsQuery = appointmentsQuery.neq("id", excludeAppointmentId);
         const {data: appointments, error: appointmentError} = await appointmentsQuery;
         if (appointmentError) throw appointmentError;
         const opening = toMinutes(professionalConfig.work_start_time.slice(0, 5));
@@ -71,7 +91,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         if (body.website || !body.clientName?.trim() || !body.phone?.trim() || !body.date || !/^\d{2}:\d{2}$/.test(body.time)) return NextResponse.json({error: "Completa los datos requeridos."}, {status: 400});
         const supabase = getSupabaseAdmin();
-        const {data: professionalConfig} = await supabase.from("professionals").select("work_days,work_start_time,work_end_time").eq("name", body.professional).eq("active", true).maybeSingle();
+        const {data: professionalConfig} = await supabase.from("professionals").select("id,work_days,work_start_time,work_end_time").eq("name", body.professional).eq("active", true).maybeSingle();
         if (!professionalConfig || !professionalConfig.work_days.includes(new Date(`${body.date}T12:00:00`).getDay())) return NextResponse.json({error: "Esta profesional no atiende ese día."}, {status: 400});
         const {
             data: service,
@@ -82,7 +102,7 @@ export async function POST(request: NextRequest) {
         const {
             data: existing,
             error: existingError
-        } = await supabase.from("appointments").select("starts_at,duration_minutes").eq("professional_name", body.professional).gte("starts_at", start).lte("starts_at", end).neq("status", "cancelled");
+        } = await supabase.from("appointments").select("starts_at,duration_minutes").eq("professional_id", professionalConfig.id).gte("starts_at", start).lte("starts_at", end).neq("status", "cancelled");
         if (existingError) throw existingError;
         const requested = toMinutes(body.time), conflict = (existing ?? []).some((appointment) => {
             const begins = toMinutes(new Date(appointment.starts_at).toLocaleTimeString("es-CL", {
