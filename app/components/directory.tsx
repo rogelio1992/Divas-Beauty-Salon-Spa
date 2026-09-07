@@ -27,10 +27,29 @@ export default function Directory({view, services, clients, professionals, appoi
     const [query, setQuery] = useState("");
     const [message, setMessage] = useState("");
     const [busy, setBusy] = useState(false);
+    const [accountsLoading, setAccountsLoading] = useState(false);
+    const [accountsMessage, setAccountsMessage] = useState("");
+    const accountsRequest = useRef(false);
     async function loadAccounts() {
-        if (!admin) return;
-        const result = await getSupabaseClient()?.from("profiles").select("id,full_name,email,role,active,professional_id").order("full_name");
-        if (result?.error) setMessage("No se pudieron cargar los accesos."); else setAccounts(result?.data ?? []);
+        if (!admin || accountsRequest.current) return;
+        accountsRequest.current = true;
+        setAccountsLoading(true);
+        setAccountsMessage("");
+        try {
+            const db = getSupabaseClient();
+            if (!db) throw new Error("Sin conexión");
+            const result = await db.from("profiles").select("id,full_name,email,role,active,professional_id").order("full_name");
+            if (result.error) throw result.error;
+            const loaded: Profile[] = result.data ?? [];
+            setAccounts(loaded);
+            const disabled = loaded.filter(item => !item.active).length;
+            setAccountsMessage(disabled ? `Lista actualizada. ${disabled} cuenta${disabled === 1 ? " sin habilitar" : "s sin habilitar"}.` : "Lista actualizada. No hay cuentas pendientes de habilitar.");
+        } catch {
+            setAccountsMessage("No se pudieron actualizar los accesos. Inténtalo nuevamente.");
+        } finally {
+            accountsRequest.current = false;
+            setAccountsLoading(false);
+        }
     }
     useEffect(() => { if (view === "equipo") void loadAccounts(); }, [view, admin]);
     const service = services.find(item => item.id === editor?.id);
@@ -88,7 +107,7 @@ export default function Directory({view, services, clients, professionals, appoi
         {view === "clientes" && <><label className="directory-search">Buscar clienta<input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Nombre, teléfono o correo"/></label><div className="directory-list">{visibleClients.map(item => <article className="directory-row" key={item.id}><div className="initials">{item.full_name.slice(0, 2)}</div><div><strong>{item.full_name}</strong><span>{item.phone || "Sin teléfono"}</span></div><b>{appointments.filter(a => a.clientId === item.id && a.status === "completed").length} atendidas</b><button className="view-appointment" onClick={() => setSelectedClient(item.id)}>Ver ficha</button></article>)}{!visibleClients.length && <p className="empty">No hay clientas que mostrar.</p>}</div></>}
         {view === "servicios" && <div className="service-grid">{services.map(item => <article className="service-card" key={item.id}><span>{item.category} · {item.active ? "Activo" : "Inactivo"}</span><h3>{item.name}</h3><p>{item.duration_minutes} min</p><strong>{money(item.price)}</strong>{admin && <div><button className="view-appointment" onClick={() => edit("service", item.id)}>Editar servicio</button></div>}</article>)}{!services.length && <p className="empty">Aún no hay servicios.</p>}</div>}
         {view === "equipo" && <><div className="team-grid">{professionals.map(item => <article className={`team-card${item.active ? "" : " inactive"}`} key={item.id}><div className="team-avatar">{item.name[0]}</div><h3>{item.name}</h3><p>{item.specialty} · {item.active ? "Activa" : "Inactiva"}</p><span>{item.work_start_time.slice(0, 5)} – {item.work_end_time.slice(0, 5)}</span><small>{item.work_days.map(day => ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"][day]).join(" · ")}</small>{admin && <button className="view-appointment" onClick={() => edit("professional", item.id)}>Configurar</button>}</article>)}{!professionals.length && <p className="empty">Aún no hay profesionales.</p>}</div>
-        {admin && <section className="accounts"><h2>Accesos del equipo</h2><p className="subtle">Cada trabajadora solicita su acceso desde el inicio de sesión. Aquí puedes vincularla a una profesional y habilitar su cuenta.</p><button className="view-appointment" onClick={loadAccounts}>Actualizar solicitudes</button>{accounts.map(item => <article className="directory-row" key={item.id}><div><strong>{item.full_name}</strong><span>{item.email}</span><span>{item.role === "admin" ? "Administración" : "Trabajadora"} · {item.active ? "Habilitada" : "Sin acceso"} · {professionals.find(p => p.id === item.professional_id)?.name ?? "Sin profesional asignada"}</span></div>{item.id === profile.id ? <b>Tu cuenta</b> : <button className="view-appointment" onClick={() => {setMessage(""); setAccount(item);}}>Gestionar acceso</button>}</article>)}</section>}</>}
+        {admin && <section className="accounts"><h2>Accesos del equipo</h2><p className="subtle">Cada trabajadora solicita su acceso desde el inicio de sesión. Aquí puedes vincularla a una profesional y habilitar su cuenta.</p><button className="view-appointment" onClick={loadAccounts} disabled={accountsLoading}>{accountsLoading ? "Actualizando…" : "Actualizar solicitudes"}</button><p className="subtle" role="status" aria-live="polite">{accountsMessage}</p>{accounts.map(item => <article className="directory-row" key={item.id}><div><strong>{item.full_name}</strong><span>{item.email}</span><span>{item.role === "admin" ? "Administración" : "Trabajadora"} · {item.active ? "Habilitada" : "Sin acceso"} · {professionals.find(p => p.id === item.professional_id)?.name ?? "Sin profesional asignada"}</span></div>{item.id === profile.id ? <b>Tu cuenta</b> : <button className="view-appointment" onClick={() => {setMessage(""); setAccount(item);}}>Gestionar acceso</button>}</article>)}</section>}</>}
         </section>
         {editor && <Modal title={editor.kind === "service" ? "Servicio" : editor.kind === "client" ? "Ficha de clienta" : "Profesional y jornada"} onClose={() => !busy && setEditor(null)}><form onSubmit={save}>
         <label>Nombre<input name="name" required maxLength={150} defaultValue={editor.kind === "service" ? service?.name : editor.kind === "client" ? client?.full_name : professional?.name}/></label>
