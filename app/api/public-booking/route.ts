@@ -16,18 +16,28 @@ export async function GET(request: NextRequest) {
             error
         } = await supabase.from("services").select("id,name,category,duration_minutes,price").eq("active", true).order("name");
         if (error) throw error;
-        const {data: professionalRows, error: professionalError} = await supabase.from("professionals").select("name,work_days,work_start_time,work_end_time").eq("active", true).order("name");
+        const {
+            data: professionalRows,
+            error: professionalError
+        } = await supabase.from("professionals").select("name,work_days,work_start_time,work_end_time").eq("active", true).order("name");
         if (professionalError) throw professionalError;
         const professionals = professionalRows ?? [];
         const date = request.nextUrl.searchParams.get("date");
         const serviceId = Number(request.nextUrl.searchParams.get("serviceId"));
         const professional = request.nextUrl.searchParams.get("professional");
-        if (!date || !serviceId || !professional) return NextResponse.json({services, professionals: professionals.map(item => item.name)});
+        if (!date || !serviceId || !professional) return NextResponse.json({
+            services,
+            professionals: professionals.map(item => item.name)
+        });
         const service = services?.find((item) => item.id === serviceId);
         const professionalConfig = professionals.find(item => item.name === professional);
         if (!service || !professionalConfig) return NextResponse.json({error: "Datos de reserva inválidos"}, {status: 400});
         const dayOfWeek = new Date(`${date}T12:00:00`).getDay();
-        if (!professionalConfig.work_days.includes(dayOfWeek)) return NextResponse.json({services, professionals: professionals.map(item => item.name), slots: []});
+        if (!professionalConfig.work_days.includes(dayOfWeek)) return NextResponse.json({
+            services,
+            professionals: professionals.map(item => item.name),
+            slots: []
+        });
         const start = santiagoDayStart(date), end = santiagoDayEnd(date);
         const excludeAppointmentId = Number(request.nextUrl.searchParams.get("excludeAppointmentId"));
         let appointmentsQuery = supabase.from("appointments").select("starts_at,duration_minutes,status").eq("professional_name", professional).gte("starts_at", start).lte("starts_at", end).neq("status", "cancelled");

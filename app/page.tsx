@@ -36,13 +36,18 @@ const weekFor = (value: string) => {
     const mondayOffset = (current.getDay() + 6) % 7;
     return Array.from({length: 7}, (_, index) => addDays(value, index - mondayOffset));
 };
+const santiagoToday = () => {
+    const parts = new Intl.DateTimeFormat("en-CA", {timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit"}).formatToParts(new Date());
+    const part = (type: string) => parts.find(item => item.type === type)?.value ?? "";
+    return `${part("year")}-${part("month")}-${part("day")}`;
+};
 
 export default function Home() {
     const [user, setUser] = useState<User | null>(null);
     const [ready, setReady] = useState(false);
     const [view, setView] = useState<View>("agenda");
     const [agendaMode, setAgendaMode] = useState<AgendaMode>("day");
-    const [date, setDate] = useState("2026-09-02");
+    const [date, setDate] = useState(santiagoToday);
     const [filter, setFilter] = useState("Todas");
     const [services, setServices] = useState<Service[]>([]);
     const [professionals, setProfessionals] = useState<Professional[]>([]);
