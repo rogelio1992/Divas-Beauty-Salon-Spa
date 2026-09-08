@@ -23,4 +23,4 @@
 .footer .brand img {width:80px;}
 @media(max-width:680px) {.header .brand img {width:76px;}}
 
-.headlineAccent {color:var(--rose);}
+.hero h1 .headlineAccent {font:inherit;letter-spacing:inherit;color:var(--rose);}
