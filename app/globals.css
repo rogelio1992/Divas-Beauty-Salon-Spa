@@ -1342,3 +1342,10 @@ button:disabled { opacity: .6; cursor: wait; }
 .loyalty-history {padding:12px 0;border-bottom:1px solid #e5d3db;}
 .loyalty-book {display:inline-block;margin:20px 0;text-decoration:none;}
 @media(max-width:600px) {.loyalty-share {flex-direction:column;align-items:flex-start;}.loyalty-card {padding:22px 16px;}.loyalty-card h2 {font-size:24px;}.sidebar nav button span {font-size:8px;}}
+
+.directory-actions {display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;}
+.directory-row .directory-actions {margin-top:0;}
+.directory-delete {border:1px solid #dbb3bf;border-radius:8px;background:#fff7f8;color:#a02f4b;padding:8px 12px;font:inherit;font-size:12px;cursor:pointer;}
+.directory-delete:hover {background:#fbe6ec;}
+.directory-delete:disabled {opacity:.5;cursor:wait;}
+.directory-delete:focus-visible {outline:2px solid #a02f4b;outline-offset:3px;}

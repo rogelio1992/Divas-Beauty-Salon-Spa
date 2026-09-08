@@ -97,3 +97,9 @@ Aplicar una sola vez `supabase/migrations/20260908_public_team.sql`, después de
 La consulta pública devuelve únicamente ID, nombre, especialidad, usuario de Instagram y ruta de foto. Los horarios, cuentas y datos internos conservan sus permisos. Las fotos se guardan en el bucket privado existente `salon-media`; al ocultar o desactivar la profesional no se emiten nuevas URLs de acceso. Una URL firmada previamente emitida puede durar hasta 60 segundos. No se consulta ni se extrae contenido de Instagram.
 
 Validación SQL: en una base desechable, ejecutar `tests/phase2.sql`, `tests/salon-content.sql` y `tests/public-team.sql` en sesiones psql separadas. Las pruebas emulan las tablas Storage; no prueban la subida HTTP al Supabase remoto.
+
+## Eliminar registros del directorio
+
+Aplicar `supabase/migrations/20260908_directory_delete.sql` después de fase 2 y publicar la aplicación. Administración dispone de **Eliminar** en Clientas, Servicios y Equipo, con confirmación del nombre antes del borrado permanente. Las trabajadoras no pueden eliminar estos registros.
+
+La base impide eliminar clientas con citas o fidelización, servicios con citas y profesionales con citas o cuentas vinculadas. La interfaz explica el motivo y, para servicios y profesionales, cómo desactivarlos. Las publicaciones asociadas a un servicio sin citas se conservan con su referencia al servicio vacía, según la relación existente. No se borran cuentas de acceso, citas ni tarjetas en cascada. Las fotos privadas no se eliminan del almacenamiento.
