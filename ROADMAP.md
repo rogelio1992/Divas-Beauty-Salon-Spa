@@ -87,3 +87,13 @@ Objetivo: apoyar las decisiones del salón.
 - [x] Mantener libres las citas canceladas y permitir horarios consecutivos.
 - [x] Mostrar un mensaje de horario ocupado y actualizar disponibilidad ante un conflicto.
 - [ ] Aplicar la migración de protección en Supabase y desplegar esta versión (a cargo del usuario).
+
+## Fidelización digital
+
+- [x] Configurar visitas necesarias y porcentaje de descuento desde administración.
+- [x] Emitir tarjetas por clienta con enlace privado, QR y WhatsApp asistido.
+- [x] Acumular sellos desde citas completadas, sin duplicados.
+- [x] Registrar canjes, importe descontado e historial; iniciar nueva tarjeta.
+- [x] Conservar condiciones de tarjetas existentes y proteger canjes concurrentes.
+- [ ] Aplicar las migraciones `20260908_loyalty_settings.sql` y `20260908_loyalty_cards.sql` y realizar un único despliegue.
+- [ ] Verificar emisión, consulta pública y canje en el entorno real.

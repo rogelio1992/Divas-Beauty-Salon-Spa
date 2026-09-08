@@ -56,3 +56,27 @@ python3 tests/booking-concurrency.py <base_temporal>
 ```
 
 Comprueba migración con cruces previos, dos inserciones simultáneas de reserva pública/trabajadora, límites consecutivos, profesionales distintas, cancelación concurrente, reactivación, cambios de hora/duración, y zona horaria. La activación en el Supabase real queda a cargo del usuario.
+
+## Fidelización: activación en un solo despliegue
+
+Con fase 2 ya aplicada, ejecutar una sola vez y en orden:
+
+1. `supabase/migrations/20260908_loyalty_settings.sql` (omitir si ya se aplicó).
+2. `supabase/migrations/20260908_loyalty_cards.sql`.
+3. Publicar esta versión completa en Vercel una sola vez. No requiere nuevas variables de entorno.
+
+En **Administración → Fidelización**, guardar las visitas necesarias (1–100) y el descuento porcentual entero (1–100). Ambos comienzan sin configurar. En **Clientas → Ver ficha**, emitir la tarjeta antes de la próxima visita; compartir el enlace privado o QR, o abrir WhatsApp con el mensaje preparado. El envío requiere la acción del usuario.
+
+### Reglas del programa
+
+- Cada cita completada cuyo inicio sea posterior a la emisión suma un sello, hasta llenar la tarjeta. No se importan visitas históricas ni se acreditan citas futuras. Las trabajadoras suman sellos al completar sus propias citas; solo administración emite tarjetas y canjea descuentos.
+- Cambiar visitas o porcentaje afecta a las tarjetas que se emitan después. Las existentes conservan las condiciones con las que se emitieron.
+- Una tarjeta llena permite un descuento en una cita posterior completada, que comience después del término de las citas que dieron sus sellos. El canje no suma otro sello. Mientras el premio esté pendiente, no se acumulan sellos adicionales.
+- El canje registra el descuento sobre el precio histórico de la cita, redondeado al peso, y abre una nueva tarjeta. El detalle de cita y el historial de canjes muestran el total descontado. El pago sigue siendo presencial/manual; no se procesa ningún cobro online ni se altera el precio base histórico del servicio.
+- Cancelar, eliminar o cambiar de clienta una cita retira su sello si todavía no se ha canjeado. Las citas utilizadas para obtener o aplicar un beneficio canjeado conservan sus datos: se bloquean cambios de estado, clienta, fecha, servicio, duración y eliminación para mantener la integridad del canje. Las notas sí se pueden editar.
+- Emisiones, sellos y canjes están protegidos por restricciones y bloqueos de filas en PostgreSQL. Repetir un mismo canje no genera otro descuento ni otra tarjeta.
+- El enlace `/tarjeta/<token>` es de consulta, no requiere cuenta y muestra únicamente progreso y beneficios. No devuelve nombre, teléfono, notas ni citas. No se indexa y no envía referrer. Administración puede renovar el enlace para invalidar el anterior. El QR se genera dentro de la aplicación, sin enviar el enlace a un servicio externo.
+
+### Validación local
+
+`npm run build` comprueba compilación y tipos. En una base **temporal y desechable**, ejecutar `tests/phase2.sql` y luego `tests/loyalty.sql`. El segundo aplica ambas migraciones nuevas y comprueba permisos, validación de condiciones, emisión, sellos, cancelaciones, canje, conservación de condiciones, privacidad y revocación de enlaces. Ejecutar después `python3 tests/loyalty-concurrency.py <base_temporal> <puerto>` para comprobar emisiones, sellos y canjes simultáneos. Nunca ejecutar estos archivos de pruebas sobre el Supabase del salón.

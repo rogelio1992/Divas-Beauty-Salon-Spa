@@ -4,13 +4,15 @@ import SalonLogo from "../components/salon-logo";
 import {FormEvent, useEffect, useMemo, useRef, useState} from "react";
 import {useRouter} from "next/navigation";
 import SalonContent from "../components/salon-content";
+import LoyaltySettings from "../components/loyalty-settings";
+import AppointmentLoyalty from "../components/appointment-loyalty";
 import type {User} from "@supabase/supabase-js";
 import {getSupabaseClient} from "../../lib/supabase";
 import {BOOKING_CONFLICT_MESSAGE, isBookingConflict} from "../../lib/booking-errors";
 import Directory, {Client, Profile} from "../components/directory";
 import {santiagoDayEnd, santiagoDayStart, santiagoInstant} from "../../lib/santiago-time";
 
-type View = "agenda" | "clientes" | "servicios" | "equipo" | "contenido";
+type View = "agenda" | "clientes" | "servicios" | "equipo" | "contenido" | "fidelizacion";
 type AgendaMode = "day" | "week";
 export type Service = { id: number; name: string; category: string; duration_minutes: number; price: number; active: boolean };
 export type Professional = { id: number; name: string; specialty: string; work_days: number[]; work_start_time: string; work_end_time: string; active: boolean };
@@ -305,7 +307,7 @@ export default function Home() {
         icon: "♙",
         label: "Equipo"
     }];
-    if (profile.role === "admin") nav.push({id: "contenido", icon: "✿", label: "Contenido"});
+    if (profile.role === "admin") nav.push({id: "contenido", icon: "✿", label: "Contenido"}, {id: "fidelizacion", icon: "♡", label: "Fidelización"});
     return <main>
         <aside className="sidebar">
             <div className="brand"><SalonLogo/></div>
@@ -386,12 +388,12 @@ export default function Home() {
                     <button className="delete" onClick={() => removeAppointment(item.id)}>x</button>
                 </article>)}{!items.length && <p className="empty">No hay citas para este día.</p>}</div>}
             </section>
-        </> : view === "contenido" ? (profile.role === "admin" ? <SalonContent/> : <p>Solo administración puede editar el contenido.</p>) : <Directory key={view} view={view} services={services} clients={clients} appointments={appointments} profile={profile} professionals={professionals} onRefresh={loadData}/>}</section>
+        </> : view === "contenido" ? (profile.role === "admin" ? <SalonContent/> : <p>Solo administración puede editar el contenido.</p>) : view === "fidelizacion" ? (profile.role === "admin" ? <LoyaltySettings/> : <p>Solo administración puede configurar la fidelización.</p>) : <Directory key={view} view={view} services={services} clients={clients} appointments={appointments} profile={profile} professionals={professionals} onRefresh={loadData}/>}</section>
         {open && <AppointmentForm clients={clients} date={date} services={activeServices} professionals={team} error={formError} onClose={() => setOpen(false)}
                                   onSubmit={createAppointment}/>} {editing &&
         <AppointmentForm clients={clients} key={editing.id} date={editing.date} services={services.filter(s => s.active || s.id === editing.serviceId)} professionals={Array.from(new Set([...team, editing.stylist]))} error={formError}
                          appointment={editing} onClose={() => setEditing(null)} onSubmit={updateAppointment}/>} {details &&
-        <AppointmentDetails appointment={details} service={services.find(service => service.id === details.serviceId)} onClose={() => setDetails(null)} onEdit={() => { setDetails(null); setFormError(""); setEditing(details); }}/>} {remindersOpen &&
+        <AppointmentDetails admin={profile.role === "admin"} appointment={details} service={services.find(service => service.id === details.serviceId)} onClose={() => setDetails(null)} onEdit={() => { setDetails(null); setFormError(""); setEditing(details); }}/>} {remindersOpen &&
         <ReminderPanel date={reminderDate} appointments={reminderAppointments} onClose={() => setRemindersOpen(false)}/>}</main>;
 }
 
@@ -407,7 +409,7 @@ function WeeklyAgenda({dates, appointments, selectedDate, onSelectDay}: { dates:
     })}</div>;
 }
 
-function AppointmentDetails({appointment, service, onClose, onEdit}: { appointment: Appointment; service?: Service; onClose: () => void; onEdit: () => void }) {
+function AppointmentDetails({appointment, service, onClose, onEdit, admin}: { admin: boolean; appointment: Appointment; service?: Service; onClose: () => void; onEdit: () => void }) {
     const statusLabels: Record<string, string> = {pending: "Pendiente", confirmed: "Confirmada", completed: "Completada", cancelled: "Cancelada", no_show: "No asistió"};
     const displayDate = new Intl.DateTimeFormat("es-CL", {weekday: "long", day: "numeric", month: "long", year: "numeric"}).format(new Date(`${appointment.date}T12:00:00`));
     const rawPhone = appointment.phone?.replace(/\D/g, "");
@@ -418,6 +420,7 @@ function AppointmentDetails({appointment, service, onClose, onEdit}: { appointme
         <div className="modal-title"><div><p className="eyebrow">DIVAS BEAUTY SPA · CITA</p><h2>Detalle de la cita</h2></div><button type="button" aria-label="Cerrar detalle" onClick={onClose}>×</button></div>
         <div className="details-client"><div className="initials">{appointment.client.split(" ").map(part => part[0]).join("").slice(0, 2)}</div><div><strong>{appointment.client}</strong><span>{appointment.phone ?? "Sin teléfono registrado"}</span></div><b className={`details-status ${appointment.status}`}>{statusLabels[appointment.status] ?? appointment.status}</b></div>
         <dl className="appointment-data"><div><dt>Servicio solicitado</dt><dd>{appointment.service}</dd></div><div><dt>Duración</dt><dd>{appointment.duration} minutos</dd></div><div><dt>Fecha</dt><dd>{displayDate}</dd></div><div><dt>Horario</dt><dd>{appointment.time} hrs</dd></div><div><dt>Profesional</dt><dd>{appointment.stylist}</dd></div><div><dt>Valor</dt><dd>{appointment.price != null ? formatMoney(appointment.price) : "No disponible"}</dd></div></dl>
+        {admin && <AppointmentLoyalty appointmentId={appointment.id}/>}
         {whatsappUrl ? <a className="whatsapp-confirm" href={whatsappUrl} target="_blank" rel="noreferrer">◉ Enviar confirmación por WhatsApp</a> : <p className="missing-phone">Agrega un teléfono para enviar la confirmación por WhatsApp.</p>}
         <button className="primary full" onClick={onEdit}>✎ Editar cita</button>
     </section></div>;
