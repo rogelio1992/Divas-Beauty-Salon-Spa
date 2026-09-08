@@ -115,7 +115,7 @@ export default function Home() {
             supabase.from("services").select("id,name,category,duration_minutes,price,active").order("name"),
             supabase.from("appointments").select("id,client_id,client_name,client_phone,service_id,service_name,service_price,professional_id,professional_name,starts_at,duration_minutes,status").order("starts_at"),
             supabase.from("professionals").select("id,name,specialty,instagram,show_on_home,photo_path,work_days,work_start_time,work_end_time,active").order("name"),
-            supabase.from("clients").select("id,full_name,phone,email,notes").order("full_name")
+            supabase.from("clients").select("id,full_name,phone,email,notes,archived").order("full_name")
         ]);
         if (currentUserId.current !== user.id) return;
         if (serviceResult.error || appointmentResult.error || professionalResult.error || clientResult.error) {
@@ -490,7 +490,7 @@ function AppointmentForm({clients, date, services, professionals, error, appoint
                     <h2>{appointment ? "Editar cita" : "Nueva cita"}</h2></div>
                 <button type="button" onClick={onClose}>×</button>
             </div>
-            <label>Ficha de clienta<select name="clientId" value={clientId} onChange={e => setClientId(e.target.value)}><option value="">Nueva clienta</option>{clients.map(c => <option key={c.id} value={c.id}>{c.full_name}{c.phone ? ` · ${c.phone}` : ""}</option>)}</select></label>
+            <label>Ficha de clienta<select name="clientId" value={clientId} onChange={e => setClientId(e.target.value)}><option value="">Nueva clienta</option>{clients.filter(c => !c.archived || c.id === appointment?.clientId).map(c => <option key={c.id} value={c.id}>{c.full_name}{c.phone ? ` · ${c.phone}` : ""}</option>)}</select></label>
             <label>Cliente<input key={`name-${clientId}`} required name="client" readOnly={!!selectedClient} defaultValue={selectedClient?.full_name ?? (clientId ? appointment?.client : "")}
                                  placeholder="Nombre de la clienta"/></label><label>WhatsApp<input key={`phone-${clientId}`} name="phone" type="tel" readOnly={!!selectedClient} defaultValue={selectedClient?.phone ?? (clientId ? appointment?.phone ?? "" : "")}
                                  placeholder="+56 9 ..."/></label><label>Servicio<select required

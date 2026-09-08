@@ -1349,3 +1349,8 @@ button:disabled { opacity: .6; cursor: wait; }
 .directory-delete:hover {background:#fbe6ec;}
 .directory-delete:disabled {opacity:.5;cursor:wait;}
 .directory-delete:focus-visible {outline:2px solid #a02f4b;outline-offset:3px;}
+
+.client-lifecycle {border-top:1px solid #e5d3db;margin:24px 0;padding-top:12px;}
+.client-delete-confirm {border:1px solid #d49ba9;background:#fff4f6;border-radius:12px;padding:20px;margin-top:18px;}
+.client-delete-confirm ul {padding-left:22px;line-height:1.8;}
+.client-delete-confirm h3 {overflow-wrap:anywhere;}

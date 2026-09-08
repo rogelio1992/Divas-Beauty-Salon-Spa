@@ -97,3 +97,11 @@ Objetivo: apoyar las decisiones del salón.
 - [x] Conservar condiciones de tarjetas existentes y proteger canjes concurrentes.
 - [ ] Aplicar las migraciones `20260908_loyalty_settings.sql` y `20260908_loyalty_cards.sql` y realizar un único despliegue.
 - [ ] Verificar emisión, consulta pública y canje en el entorno real.
+
+## Gestión de clientas
+
+- [x] Archivar y restaurar fichas, con filtro de archivadas.
+- [x] Revocar enlaces de tarjetas y bloquear nuevas citas mientras la ficha está archivada.
+- [x] Eliminar ficha y todo su historial con revisión de cantidades y confirmación del nombre.
+- [x] Comprobar permisos, aislamiento y reversión ante fallos en base temporal.
+- [ ] Aplicar `20260908_client_lifecycle.sql` y desplegar la aplicación.

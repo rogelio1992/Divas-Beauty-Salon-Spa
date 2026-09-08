@@ -102,4 +102,18 @@ Validación SQL: en una base desechable, ejecutar `tests/phase2.sql`, `tests/sal
 
 Aplicar `supabase/migrations/20260908_directory_delete.sql` después de fase 2 y publicar la aplicación. Administración dispone de **Eliminar** en Clientas, Servicios y Equipo, con confirmación del nombre antes del borrado permanente. Las trabajadoras no pueden eliminar estos registros.
 
-La base impide eliminar clientas con citas o fidelización, servicios con citas y profesionales con citas o cuentas vinculadas. La interfaz explica el motivo y, para servicios y profesionales, cómo desactivarlos. Las publicaciones asociadas a un servicio sin citas se conservan con su referencia al servicio vacía, según la relación existente. No se borran cuentas de acceso, citas ni tarjetas en cascada. Las fotos privadas no se eliminan del almacenamiento.
+El borrado directo de la base impide eliminar clientas con citas o fidelización; el flujo especial de borrado completo de clientas se describe abajo. Servicios con citas y profesionales con citas o cuentas vinculadas continúan protegidos. La interfaz explica el motivo y, para servicios y profesionales, cómo desactivarlos. Las publicaciones asociadas a un servicio sin citas se conservan con su referencia al servicio vacía, según la relación existente. Al eliminar servicios o profesionales no se borran cuentas de acceso, citas ni tarjetas en cascada. Las fotos privadas no se eliminan del almacenamiento.
+
+## Archivar y eliminar completamente clientas
+
+Aplicar una vez `supabase/migrations/20260908_client_lifecycle.sql` después de las migraciones de fidelización, incluida `20260908_loyalty_completion_stamps.sql`, y publicar la aplicación. No repetir migraciones de creación. Las clientas existentes permanecen activas.
+
+En **Clientas → Ver ficha → Administrar ficha**:
+
+- **Archivar clienta** conserva ficha, citas y beneficios. La lista habitual y el selector de nuevas citas muestran únicamente clientas activas. El filtro **Clientas archivadas** permite consultar y restaurar sus fichas. Las citas existentes no se cancelan ni borran; pueden seguir gestionándose, pero mientras la clienta esté archivada no acumula sellos ni canjea beneficios. La base bloquea nuevas citas vinculadas a fichas archivadas (también si se intenta reencontrarlas por nombre y teléfono desde reservas públicas).
+- **Restaurar clienta** recupera su ficha y tarjeta. Archivar/restaurar renueva el token; se debe compartir el nuevo enlace. Los enlaces anteriores continúan inválidos. No se agregan retroactivamente sellos por citas completadas durante el archivo.
+- **Eliminar definitivamente** consulta el número actual de citas (incluidas próximas), tarjetas, sellos y canjes. Requiere escribir el nombre exacto de la clienta. Borra también su contacto y notas, invalida la tarjeta y elimina todo ese historial. No afecta servicios, profesionales ni datos de otras clientas.
+
+El borrado completo se ejecuta en una única transacción privilegiada, que comprueba el rol administrador y confirma que los recuentos no cambiaron desde la revisión. Bloquea brevemente escrituras sobre las tablas implicadas durante el borrado. No deshabilita triggers: primero elimina fidelización y luego las citas. Cualquier error revierte el conjunto. No elimina cuentas de acceso del equipo.
+
+Pruebas: en una base desechable con fase 2 y fidelización, ejecutar `tests/client-lifecycle.sql`. Comprueba archivo/restauración, invalidez de enlaces anteriores, bloqueo de nuevas citas y sellos durante el archivo, permisos, confirmación, borrado de historial canjeado, aislamiento de otras clientas y reversión completa ante un error en el último paso.
