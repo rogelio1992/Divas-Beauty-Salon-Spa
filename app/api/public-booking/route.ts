@@ -1,3 +1,4 @@
+import {BOOKING_CONFLICT_MESSAGE, isBookingConflict} from "../../../lib/booking-errors";
 import {NextRequest, NextResponse} from "next/server";
 import {getSupabaseAdmin} from "../../../lib/supabase-admin";
 import {santiagoDayEnd, santiagoDayStart, santiagoInstant} from "../../../lib/santiago-time";
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
             return requested < begins + appointment.duration_minutes && requested + service.duration_minutes > begins;
         });
         if (requested < toMinutes(professionalConfig.work_start_time.slice(0, 5)) || requested + service.duration_minutes > toMinutes(professionalConfig.work_end_time.slice(0, 5))) return NextResponse.json({error: "Ese horario está fuera de la jornada de la profesional."}, {status: 400});
-        if (conflict) return NextResponse.json({error: "Ese horario acaba de ser reservado. Elige otro."}, {status: 409});
+        if (conflict) return NextResponse.json({error: BOOKING_CONFLICT_MESSAGE}, {status: 409});
         const {error} = await supabase.from("appointments").insert({
             client_name: body.clientName.trim(),
             client_phone: body.phone.trim(),
@@ -127,10 +128,7 @@ export async function POST(request: NextRequest) {
         if (error) throw error;
         return NextResponse.json({ok: true});
     } catch (error) {
-        return NextResponse.json({
-            error: error instanceof Error ? error.message : (error as {
-                message?: string
-            }).message ?? "No se pudo crear la reserva."
-        }, {status: 500});
+        if (isBookingConflict(error)) return NextResponse.json({error: BOOKING_CONFLICT_MESSAGE}, {status: 409});
+        return NextResponse.json({error: "No se pudo crear la reserva. Inténtalo nuevamente."}, {status: 500});
     }
 }

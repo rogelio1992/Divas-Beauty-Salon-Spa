@@ -1,4 +1,4 @@
-# Roadmap — Divas Beauty Spa
+que migracion# Roadmap — Divas Beauty Spa
 
 Este documento es la guía de evolución del sistema. Cada mejora terminada se marca aquí antes de pasar a la siguiente fase.
 
@@ -81,4 +81,9 @@ Objetivo: apoyar las decisiones del salón.
 
 **Próxima prioridad:** activar y verificar la fase 2 en Supabase/Vercel; después, recordatorios automáticos de fase 3.
 
-**Pendiente técnico de agenda:** garantizar en la base de datos que dos reservas simultáneas no puedan ocupar el mismo horario.
+**Protección de reservas simultáneas:** implementada mediante una restricción de exclusión en PostgreSQL. Pendiente de aplicar `supabase/migrations/20260907_appointments_no_overlap.sql` y publicar los mensajes de conflicto en Vercel.
+
+- [x] Bloquear cruces concurrentes al crear, editar o reactivar citas.
+- [x] Mantener libres las citas canceladas y permitir horarios consecutivos.
+- [x] Mostrar un mensaje de horario ocupado y actualizar disponibilidad ante un conflicto.
+- [ ] Aplicar la migración de protección en Supabase y desplegar esta versión (a cargo del usuario).

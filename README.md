@@ -34,7 +34,25 @@ Para una base nueva, ejecutar en orden `supabase/schema.sql`, `20260902_public_b
 ## Verificación
 
 - `npm run build`: compilación de producción y revisión de tipos.
-- `sh tests/run-api-tests.sh`: cinco pruebas del endpoint de disponibilidad, con un cliente de datos simulado; cubren autorización, servicios inactivos, duración histórica y profesionales renombradas.
+- `sh tests/run-api-tests.sh`: siete pruebas del endpoint de disponibilidad, con un cliente de datos simulado; cubren autorización, servicios inactivos, duración histórica y profesionales renombradas.
 - `psql -v ON_ERROR_STOP=1 -d <base_temporal_vacía> -f tests/phase2.sql`: prueba real de PostgreSQL con roles Auth simulados. **Usar únicamente una instancia de prueba**, nunca el proyecto del salón: crea roles, tablas y datos ficticios. Comprueba migración, permisos, intentos de escalación, revocación, horarios, fichas y conservación del historial.
 
-No se ha realizado verificación de interfaz en navegador ni validación contra el Supabase remoto en esta sesión. La prevención atómica de reservas simultáneas sigue siendo un pendiente separado: las consultas actuales comprueban disponibilidad antes de insertar.
+No se ha realizado verificación de interfaz en navegador ni validación contra el Supabase remoto en esta sesión.
+
+## Activar la protección contra reservas simultáneas
+
+Después de la fase 2, ejecutar una sola vez `supabase/migrations/20260907_appointments_no_overlap.sql` en Supabase y publicar los cambios de aplicación en Vercel. No volver a ejecutar la migración de fase 2 si ya está aplicada.
+
+La migración no borra ni corrige citas. Si encuentra cruces existentes o citas no canceladas sin profesional vinculada, revierte todo y se detiene. Ejecutar `supabase/checks/appointment_conflicts.sql` para identificar los registros y resolverlos según corresponda (reagendar, asignar profesional o cancelar) antes de reintentar. La instalación bloquea escrituras brevemente mientras valida y crea la restricción.
+
+La restricción `appointments_no_overlap` impide cruces por ID de profesional para todos los estados excepto `cancelled`, incluyendo peticiones simultáneas y cambios de hora, profesional, servicio o estado. Los intervalos incluyen el inicio y excluyen el final: una cita puede empezar exactamente cuando termina otra. El cálculo usa UTC y minutos transcurridos, independiente de la zona horaria de la sesión. Una cita no cancelada debe tener profesional vinculada.
+
+PostgreSQL devuelve `23P01` ante un cruce. La API pública lo convierte en HTTP 409 sin exponer los datos de la cita que ocupó el horario. Ambos formularios muestran un mensaje y recargan disponibilidad; la agenda también informa conflictos al reactivar citas. Las comprobaciones previas de disponibilidad se mantienen como ayuda, pero la garantía está en la base de datos.
+
+Prueba real de concurrencia (solo en una base desechable inicializada con `tests/phase2.sql`, usando el clúster local de pruebas `/tmp:55432`):
+
+```bash
+python3 tests/booking-concurrency.py <base_temporal>
+```
+
+Comprueba migración con cruces previos, dos inserciones simultáneas de reserva pública/trabajadora, límites consecutivos, profesionales distintas, cancelación concurrente, reactivación, cambios de hora/duración, y zona horaria. La activación en el Supabase real queda a cargo del usuario.

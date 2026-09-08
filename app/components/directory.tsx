@@ -2,16 +2,16 @@
 
 import {FormEvent, ReactNode, useEffect, useRef, useState} from "react";
 import {getSupabaseClient} from "../../lib/supabase";
-import type {Appointment, Professional, Service} from "../page";
+import type {Appointment, Professional, Service} from "../admin/page";
 export type Profile = {id: string; full_name: string; email: string | null; role: "admin" | "staff"; active: boolean; professional_id: number | null};
 export type Client = {id: number; full_name: string; phone: string | null; email: string | null; notes: string};
 const money = (value: number) => new Intl.NumberFormat("es-CL", {style: "currency", currency: "CLP", maximumFractionDigits: 0}).format(value);
 const statuses: Record<string, string> = {pending: "Pendiente", confirmed: "Confirmada", completed: "Completada", cancelled: "Cancelada", no_show: "No asistió"};
 
-function Modal({title, children, onClose}: {title: string; children: ReactNode; onClose: () => void}) {
+export function Modal({title, children, onClose}: {title: string; children: ReactNode; onClose: () => void}) {
     const ref = useRef<HTMLDialogElement>(null);
     useEffect(() => { ref.current?.showModal(); }, []);
-    return <dialog ref={ref} className="phase-dialog modal" onCancel={onClose} aria-label={title}>
+    return <dialog ref={ref} className="phase-dialog modal" onCancel={event => { event.preventDefault(); onClose(); }} aria-label={title}>
         <div className="modal-title"><h2>{title}</h2><button type="button" aria-label="Cerrar" onClick={onClose}>×</button></div>{children}
     </dialog>;
 }
