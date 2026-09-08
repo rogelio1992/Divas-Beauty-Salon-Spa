@@ -67,7 +67,7 @@ export default function ClientLoyalty({clientId, phone}: {clientId: number; phon
         <h3>Tarjeta de fidelización</h3>
         {message && <p className="notice" role="status">{message}</p>}
         {!loaded ? <button className="view-appointment" disabled={busy} onClick={() => void run(load)}>{busy ? "Cargando…" : "Reintentar"}</button> : !card ? <>
-            <p className="subtle">Emite la tarjeta antes de la próxima visita. Las citas anteriores no suman sellos.</p>
+            <p className="subtle">Emite la tarjeta antes de marcar la cita como completada. Las citas ya completadas no se agregan automáticamente.</p>
             <button className="primary" disabled={busy} onClick={() => void run(() => rpc("enroll_loyalty", {p_client_id: clientId}))}>Emitir tarjeta digital</button>
         </> : <>
             <LoyaltyCardView progress={{requiredVisits: card.required_visits, discountPercent: card.discount_percent, visits: earned.length, rewardsRedeemed: cards.filter(c => c.redeemed_at).length}}/>
