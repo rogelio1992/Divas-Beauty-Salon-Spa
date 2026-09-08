@@ -1315,3 +1315,7 @@ button:disabled { opacity: .6; cursor: wait; }
 @media (max-width: 760px) {
     .auth-card .salon-logo, .booking-card .salon-logo { width: 96px; }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+}
