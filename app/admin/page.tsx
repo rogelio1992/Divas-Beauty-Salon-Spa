@@ -15,7 +15,7 @@ import {santiagoDayEnd, santiagoDayStart, santiagoInstant} from "../../lib/santi
 type View = "agenda" | "clientes" | "servicios" | "equipo" | "contenido" | "fidelizacion";
 type AgendaMode = "day" | "week";
 export type Service = { id: number; name: string; category: string; duration_minutes: number; price: number; active: boolean };
-export type Professional = { id: number; name: string; specialty: string; work_days: number[]; work_start_time: string; work_end_time: string; active: boolean };
+export type Professional = { id: number; name: string; specialty: string; instagram: string; show_on_home: boolean; photo_path: string | null; work_days: number[]; work_start_time: string; work_end_time: string; active: boolean };
 export type Appointment = {
     id: number;
     clientId: number;
@@ -114,7 +114,7 @@ export default function Home() {
         const [serviceResult, appointmentResult, professionalResult, clientResult] = await Promise.all([
             supabase.from("services").select("id,name,category,duration_minutes,price,active").order("name"),
             supabase.from("appointments").select("id,client_id,client_name,client_phone,service_id,service_name,service_price,professional_id,professional_name,starts_at,duration_minutes,status").order("starts_at"),
-            supabase.from("professionals").select("id,name,specialty,work_days,work_start_time,work_end_time,active").order("name"),
+            supabase.from("professionals").select("id,name,specialty,instagram,show_on_home,photo_path,work_days,work_start_time,work_end_time,active").order("name"),
             supabase.from("clients").select("id,full_name,phone,email,notes").order("full_name")
         ]);
         if (currentUserId.current !== user.id) return;

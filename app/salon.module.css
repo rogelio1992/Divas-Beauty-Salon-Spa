@@ -24,3 +24,15 @@
 @media(max-width:680px) {.header .brand img {width:76px;}}
 
 .hero h1 .headlineAccent {font:inherit;letter-spacing:inherit;color:var(--rose);}
+
+.nav {flex-wrap:wrap;justify-content:center;}
+.teamGrid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;}
+.teamCard {padding:28px 22px;text-align:center;border:1px solid #e3cfd6;border-radius:16px;background:#fffaf7;min-width:0;}
+.teamPhoto,.teamInitials {width:140px;height:140px;border-radius:50%;margin:0 auto 22px;object-fit:cover;}
+.teamInitials {display:grid;place-items:center;background:#f0dbe0;color:var(--rose);font:500 42px 'Playfair Display',serif;}
+.teamPhoto {display:block;}
+.teamCard h3 {font:500 26px 'Playfair Display',serif;margin:0 0 10px;overflow-wrap:anywhere;}
+.teamCard p {font-size:13px;line-height:1.7;color:#806c77;margin:0 0 20px;overflow-wrap:anywhere;}
+.teamCard a {overflow-wrap:anywhere;}
+@media(max-width:900px) {.teamGrid {grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:680px) {.teamGrid {grid-template-columns:1fr;gap:18px;}.teamCard {padding:24px 20px;}.teamPhoto,.teamInitials {width:112px;height:112px;}}

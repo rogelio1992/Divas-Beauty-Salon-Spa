@@ -1,6 +1,7 @@
 "use client";
 
 import {FormEvent, ReactNode, useEffect, useRef, useState} from "react";
+import {instagramLink} from "../../lib/salon-content";
 import ClientLoyalty from "./client-loyalty";
 import {getSupabaseClient} from "../../lib/supabase";
 import type {Appointment, Professional, Service} from "../admin/page";
@@ -28,6 +29,10 @@ export default function Directory({view, services, clients, professionals, appoi
     const [query, setQuery] = useState("");
     const [message, setMessage] = useState("");
     const [busy, setBusy] = useState(false);
+    const [photo, setPhoto] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState("");
+    const [removePhoto, setRemovePhoto] = useState(false);
+    const saving = useRef(false);
     const [accountsLoading, setAccountsLoading] = useState(false);
     const [accountsMessage, setAccountsMessage] = useState("");
     const accountsRequest = useRef(false);
@@ -57,10 +62,19 @@ export default function Directory({view, services, clients, professionals, appoi
     const client = clients.find(item => item.id === editor?.id);
     const professional = professionals.find(item => item.id === editor?.id);
     const detail = clients.find(item => item.id === selectedClient);
-    function edit(kind: "service" | "client" | "professional", id?: number) { setMessage(""); setEditor({kind, id}); }
+    useEffect(() => {
+        let active = true;
+        setPhotoPreview("");
+        if (photo) {const url = URL.createObjectURL(photo); setPhotoPreview(url); return () => URL.revokeObjectURL(url);}
+        if (editor?.kind === "professional" && professional?.photo_path && !removePhoto) {
+            void getSupabaseClient()?.storage.from("salon-media").createSignedUrl(professional.photo_path, 600).then(({data}) => {if (active && data) setPhotoPreview(data.signedUrl);});
+        }
+        return () => {active = false;};
+    }, [photo, professional?.photo_path, editor?.kind, removePhoto]);
+    function edit(kind: "service" | "client" | "professional", id?: number) { setMessage(""); setPhoto(null); setRemovePhoto(false); setEditor({kind, id}); }
     async function save(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!editor || busy || !admin) return;
+        if (!editor || busy || saving.current || !admin) return;
         const form = new FormData(event.currentTarget);
         const text = (key: string) => String(form.get(key) ?? "").trim();
         const db = getSupabaseClient(); if (!db) return;
@@ -76,14 +90,24 @@ export default function Directory({view, services, clients, professionals, appoi
             table = "professionals";
             const days = form.getAll("days").map(Number);
             if (!text("name") || !days.length || text("start") >= text("end")) { setMessage("Indica un nombre, al menos un día y una hora de término posterior al inicio."); return; }
-            values = {name: text("name"), specialty: text("specialty"), work_days: days, work_start_time: text("start"), work_end_time: text("end"), active: form.has("active")};
+            if (text("instagram") && !instagramLink(text("instagram"))) {setMessage("Escribe el usuario de Instagram, por ejemplo @nombre, sin URL."); return;}
+            values = {name: text("name"), specialty: text("specialty"), instagram: text("instagram").replace(/^@/, ""), show_on_home: form.has("show_on_home"), photo_path: removePhoto ? null : professional?.photo_path ?? null, work_days: days, work_start_time: text("start"), work_end_time: text("end"), active: form.has("active")};
         }
-        setBusy(true); setMessage("");
+        saving.current = true; setBusy(true); setMessage("");
+        let uploaded: string | null = null;
         try {
+            if (editor.kind === "professional" && photo) {
+                const extension = ({"image/jpeg":"jpg", "image/png":"png", "image/webp":"webp"} as Record<string,string>)[photo.type];
+                if (!extension || photo.size > 8388608) {setMessage("Usa una foto JPG, PNG o WebP de hasta 8 MB."); return;}
+                uploaded = `team/${crypto.randomUUID()}.${extension}`;
+                const {error} = await db.storage.from("salon-media").upload(uploaded, photo, {contentType: photo.type});
+                if (error) {setMessage("No se pudo subir la foto. Revisa tu conexión y tus permisos."); return;}
+                values.photo_path = uploaded;
+            }
             const result = editor.id ? await db.from(table).update(values).eq("id", editor.id).select("id").single() : await db.from(table).insert(values).select("id").single();
             if (result.error) { setMessage(result.error.code === "23505" ? "Ya existe un registro con esos datos. Revisa la ficha existente." : "No se pudo guardar. Revisa los datos y tus permisos."); return; }
-            setEditor(null); setMessage("Cambios guardados."); await onRefresh();
-        } catch { setMessage("No se pudo conectar. Inténtalo nuevamente."); } finally { setBusy(false); }
+            uploaded = null; setEditor(null); setPhoto(null); setMessage("Cambios guardados."); await onRefresh();
+        } catch { setMessage("No se pudo conectar. Inténtalo nuevamente."); } finally { if (uploaded) {try {await db.storage.from("salon-media").remove([uploaded]);} catch { /* Unpublished assets stay private. */ }} saving.current = false; setBusy(false); }
     }
     async function saveAccount(event: FormEvent<HTMLFormElement>) {
         event.preventDefault(); if (!account || busy || !admin) return;
@@ -107,14 +131,14 @@ export default function Directory({view, services, clients, professionals, appoi
         <section className="directory-card">
         {view === "clientes" && <><label className="directory-search">Buscar clienta<input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Nombre, teléfono o correo"/></label><div className="directory-list">{visibleClients.map(item => <article className="directory-row" key={item.id}><div className="initials">{item.full_name.slice(0, 2)}</div><div><strong>{item.full_name}</strong><span>{item.phone || "Sin teléfono"}</span></div><b>{appointments.filter(a => a.clientId === item.id && a.status === "completed").length} atendidas</b><button className="view-appointment" onClick={() => setSelectedClient(item.id)}>Ver ficha</button></article>)}{!visibleClients.length && <p className="empty">No hay clientas que mostrar.</p>}</div></>}
         {view === "servicios" && <div className="service-grid">{services.map(item => <article className="service-card" key={item.id}><span>{item.category} · {item.active ? "Activo" : "Inactivo"}</span><h3>{item.name}</h3><p>{item.duration_minutes} min</p><strong>{money(item.price)}</strong>{admin && <div><button className="view-appointment" onClick={() => edit("service", item.id)}>Editar servicio</button></div>}</article>)}{!services.length && <p className="empty">Aún no hay servicios.</p>}</div>}
-        {view === "equipo" && <><div className="team-grid">{professionals.map(item => <article className={`team-card${item.active ? "" : " inactive"}`} key={item.id}><div className="team-avatar">{item.name[0]}</div><h3>{item.name}</h3><p>{item.specialty} · {item.active ? "Activa" : "Inactiva"}</p><span>{item.work_start_time.slice(0, 5)} – {item.work_end_time.slice(0, 5)}</span><small>{item.work_days.map(day => ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"][day]).join(" · ")}</small>{admin && <button className="view-appointment" onClick={() => edit("professional", item.id)}>Configurar</button>}</article>)}{!professionals.length && <p className="empty">Aún no hay profesionales.</p>}</div>
+        {view === "equipo" && <><div className="team-grid">{professionals.map(item => <article className={`team-card${item.active ? "" : " inactive"}`} key={item.id}><div className="team-avatar">{item.name[0]}</div><h3>{item.name}</h3><p>{item.specialty} · {item.active ? "Activa" : "Inactiva"}</p><span>{item.work_start_time.slice(0, 5)} – {item.work_end_time.slice(0, 5)}</span><p className="subtle">{item.active && item.show_on_home ? "Visible en la portada" : "Oculta en la portada"}{item.instagram ? ` · @${item.instagram.replace(/^@/, "")}` : ""}</p><small>{item.work_days.map(day => ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"][day]).join(" · ")}</small>{admin && <button className="view-appointment" onClick={() => edit("professional", item.id)}>Configurar</button>}</article>)}{!professionals.length && <p className="empty">Aún no hay profesionales.</p>}</div>
         {admin && <section className="accounts"><h2>Accesos del equipo</h2><p className="subtle">Cada trabajadora solicita su acceso desde el inicio de sesión. Aquí puedes vincularla a una profesional y habilitar su cuenta.</p><button className="view-appointment" onClick={loadAccounts} disabled={accountsLoading}>{accountsLoading ? "Actualizando…" : "Actualizar solicitudes"}</button><p className="subtle" role="status" aria-live="polite">{accountsMessage}</p>{accounts.map(item => <article className="directory-row" key={item.id}><div><strong>{item.full_name}</strong><span>{item.email}</span><span>{item.role === "admin" ? "Administración" : "Trabajadora"} · {item.active ? "Habilitada" : "Sin acceso"} · {professionals.find(p => p.id === item.professional_id)?.name ?? "Sin profesional asignada"}</span></div>{item.id === profile.id ? <b>Tu cuenta</b> : <button className="view-appointment" onClick={() => {setMessage(""); setAccount(item);}}>Gestionar acceso</button>}</article>)}</section>}</>}
         </section>
         {editor && <Modal title={editor.kind === "service" ? "Servicio" : editor.kind === "client" ? "Ficha de clienta" : "Profesional y jornada"} onClose={() => !busy && setEditor(null)}><form onSubmit={save}>
         <label>Nombre<input name="name" required maxLength={150} defaultValue={editor.kind === "service" ? service?.name : editor.kind === "client" ? client?.full_name : professional?.name}/></label>
         {editor.kind === "service" && <><label>Categoría<input name="category" required maxLength={100} defaultValue={service?.category}/></label><div className="form-row"><label>Precio (CLP)<input name="price" type="number" required min={0} step={1} defaultValue={service?.price}/></label><label>Duración (min)<input name="duration" type="number" required min={1} step={1} defaultValue={service?.duration_minutes}/></label></div><label className="check-label"><input type="checkbox" name="active" defaultChecked={service?.active ?? true}/>Disponible para nuevas reservas</label></>}
         {editor.kind === "client" && <><label>Teléfono / WhatsApp<input name="phone" type="tel" maxLength={30} defaultValue={client?.phone ?? ""}/></label><label>Correo<input name="email" type="email" maxLength={200} defaultValue={client?.email ?? ""}/></label><label>Notas y preferencias<textarea name="notes" maxLength={5000} rows={4} defaultValue={client?.notes}/></label></>}
-        {editor.kind === "professional" && <><label>Especialidad<input name="specialty" required maxLength={150} defaultValue={professional?.specialty ?? "Servicios de belleza"}/></label><fieldset className="work-days"><legend>Días de atención</legend>{["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"].map((day, index) => <label className="check-label" key={day}><input type="checkbox" name="days" value={index} defaultChecked={(professional?.work_days ?? [1,2,3,4,5,6]).includes(index)}/>{day}</label>)}</fieldset><div className="form-row"><label>Desde<input name="start" type="time" required defaultValue={professional?.work_start_time.slice(0,5) ?? "09:00"}/></label><label>Hasta<input name="end" type="time" required defaultValue={professional?.work_end_time.slice(0,5) ?? "18:00"}/></label></div><label className="check-label"><input type="checkbox" name="active" defaultChecked={professional?.active ?? true}/>Profesional activa</label></>}
+        {editor.kind === "professional" && <><label>Especialidad<input name="specialty" required maxLength={150} defaultValue={professional?.specialty ?? "Servicios de belleza"}/></label><label>Usuario de Instagram<input name="instagram" placeholder="@usuario" maxLength={31} defaultValue={professional?.instagram ?? ""}/></label><p className="subtle">El enlace abrirá su cuenta personal de Instagram.</p><label>Foto para la portada (opcional)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => {setPhoto(e.target.files?.[0] ?? null); setRemovePhoto(false);}}/></label><p className="subtle">JPG, PNG o WebP · Hasta 8 MB. Sin foto se muestran sus iniciales.</p>{photoPreview && <img className="salon-image-preview" src={photoPreview} alt="Vista previa de la profesional"/>}{professional?.photo_path && <label className="check-label"><input type="checkbox" checked={removePhoto} onChange={e => {setRemovePhoto(e.target.checked); if(e.target.checked) setPhoto(null);}}/>Quitar foto actual</label>}<label className="check-label"><input type="checkbox" name="show_on_home" defaultChecked={professional?.show_on_home ?? false}/>Mostrar en la portada</label><p className="subtle">Solo aparece si también está activa. Publica la cuenta y foto con su autorización.</p><fieldset className="work-days"><legend>Días de atención</legend>{["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"].map((day, index) => <label className="check-label" key={day}><input type="checkbox" name="days" value={index} defaultChecked={(professional?.work_days ?? [1,2,3,4,5,6]).includes(index)}/>{day}</label>)}</fieldset><div className="form-row"><label>Desde<input name="start" type="time" required defaultValue={professional?.work_start_time.slice(0,5) ?? "09:00"}/></label><label>Hasta<input name="end" type="time" required defaultValue={professional?.work_end_time.slice(0,5) ?? "18:00"}/></label></div><label className="check-label"><input type="checkbox" name="active" defaultChecked={professional?.active ?? true}/>Profesional activa</label></>}
         {message && <p role="alert" className="form-error">{message}</p>}<button className="primary full" disabled={busy}>{busy ? "Guardando…" : "Guardar cambios"}</button></form></Modal>}
         {detail && !editor && <Modal title={detail.full_name} onClose={() => setSelectedClient(null)}><p>{detail.phone || "Sin teléfono"} · {detail.email || "Sin correo"}</p><p className="client-notes">{detail.notes || "Sin notas registradas."}</p>{admin && <button className="view-appointment" onClick={() => edit("client", detail.id)}>Editar ficha</button>}{admin && <ClientLoyalty key={detail.id} clientId={detail.id} phone={detail.phone}/>}<h3>Historial {admin ? "de citas" : "de tus citas"}</h3><div className="client-history">{appointments.filter(a => a.clientId === detail.id).sort((a,b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`)).map(a => <article key={a.id}><strong>{a.date} · {a.time}</strong><p>{a.service} · {a.duration} min · {a.price == null ? "Valor no registrado" : money(a.price)}</p><span>{a.stylist} · {statuses[a.status] ?? a.status}</span></article>)}{!appointments.some(a => a.clientId === detail.id) && <p className="empty">Aún no hay citas.</p>}</div></Modal>}
         {account && <Modal title="Gestionar acceso" onClose={() => !busy && setAccount(null)}><form onSubmit={saveAccount}><p>{account.email}</p><label>Nombre<input name="name" required defaultValue={account.full_name}/></label><label>Rol<select name="role" defaultValue={account.role}><option value="staff">Trabajadora</option><option value="admin">Administración</option></select></label><label>Profesional vinculada<select name="professional" defaultValue={account.professional_id ?? ""}><option value="">Sin asignar</option>{professionals.map(p => <option key={p.id} value={p.id}>{p.name}{p.active ? "" : " (inactiva)"}</option>)}</select></label><label className="check-label"><input type="checkbox" name="active" defaultChecked={account.active}/>Habilitar acceso</label>{message && <p role="alert" className="form-error">{message}</p>}<button className="primary full" disabled={busy}>{busy ? "Guardando…" : "Guardar acceso"}</button></form></Modal>}
