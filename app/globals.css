@@ -1297,3 +1297,21 @@ button:disabled { opacity: .6; cursor: wait; }
 .salon-editor-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
 .salon-image-preview { display: block; width: 100%; max-height: 280px; object-fit: contain; margin-top: 12px; border-radius: 8px; }
 @media(max-width: 760px) { .salon-editor {padding: 16px;} .salon-editor .form-row {grid-template-columns: 1fr;} }
+
+/* Shared salon identity; keep the complete circular artwork proportional. */
+.salon-logo {
+    display: block;
+    width: 112px;
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: contain;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.auth-card .brand, .booking-card .brand, .sidebar .brand {
+    justify-content: center;
+}
+.auth-card .salon-logo, .booking-card .salon-logo { width: 128px; }
+@media (max-width: 760px) {
+    .auth-card .salon-logo, .booking-card .salon-logo { width: 96px; }
+}

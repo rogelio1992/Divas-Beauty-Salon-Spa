@@ -1,4 +1,5 @@
 "use client";
+import SalonLogo from "../components/salon-logo";
 
 import {FormEvent, useEffect, useMemo, useRef, useState} from "react";
 import {useRouter} from "next/navigation";
@@ -307,9 +308,7 @@ export default function Home() {
     if (profile.role === "admin") nav.push({id: "contenido", icon: "✿", label: "Contenido"});
     return <main>
         <aside className="sidebar">
-            <div className="brand"><span>✦</span>
-                <div>DIVAS<small>BEAUTY SPA</small></div>
-            </div>
+            <div className="brand"><SalonLogo/></div>
             <nav>{nav.map(item => <button key={item.id} className={view === item.id ? "active" : ""}
                                           onClick={() => setView(item.id)}>{item.icon}<span>{item.label}</span>
             </button>)}</nav>

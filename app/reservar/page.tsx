@@ -1,4 +1,5 @@
 "use client";
+import SalonLogo from "../components/salon-logo";
 import {FormEvent, useEffect, useRef, useState} from "react";
 
 type Service = { id: number; name: string; category: string; duration_minutes: number; price: number };
@@ -61,9 +62,7 @@ export default function Reserve() {
 
     return <main className="booking-page">
         <section className="booking-card">
-            <div className="brand"><span>✦</span>
-                <div>DIVAS<small>BEAUTY SPA</small></div>
-            </div>
+            <div className="brand"><SalonLogo/></div>
             <a className="text-button" href="/">← Volver al salón</a><p className="eyebrow">RESERVA ONLINE · SANTIAGO</p><h1>Reserva tu momento Divas</h1><p
             className="subtle">Elige tu servicio y horario. Confirmaremos tu cita por WhatsApp.</p>
             <form onSubmit={submit}><label>Nombre completo<input required name="clientName"

@@ -1,4 +1,5 @@
 "use client";
+import SalonLogo from "../../components/salon-logo";
 import {FormEvent, useEffect, useState} from "react";
 import {useRouter} from "next/navigation";
 import {getSupabaseClient} from "../../../lib/supabase";
@@ -33,9 +34,7 @@ export default function Auth() {
 
     return <main className="auth-page">
         <form className="auth-card" onSubmit={submit}>
-            <div className="brand"><span>✦</span>
-                <div>DIVAS<small>BEAUTY SPA</small></div>
-            </div>
+            <div className="brand"><SalonLogo/></div>
             <a className="text-button" href="/">← Volver al salón</a><h1>{requestAccess ? "Solicitar acceso" : "Agenda del salón"}</h1><p>{requestAccess ? "Crea tu cuenta y solicita a administración que la habilite." : "Ingresa con tu cuenta para ver las citas."}</p><label>Correo<input type="email"
                                                                                                          required
                                                                                                          value={email}
